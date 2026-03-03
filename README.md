@@ -19,7 +19,6 @@
   <a href="#-配置--configuration">配置</a> •
   <a href="#-流程--workflow">流程</a> •
   <a href="#-技术栈--tech-stack">技术栈</a> •
-  <a href="#-致谢--acknowledgments">致谢</a>
 </p>
 
 ---
