@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "FlintStudio",
+    "tagline": "AI 影视自动化 · 多 Agent 协同"
+  },
+  "nav": {
+    "home": "首页",
+    "workspace": "工作台",
+    "settings": "设置",
+    "signIn": "登录",
+    "signOut": "退出"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signUp": "注册",
+    "username": "用户名",
+    "password": "密码",
+    "confirmPassword": "确认密码"
+  },
+  "settings": {
+    "title": "设置中心",
+    "apiConfig": "API 配置",
+    "llm": "大语言模型 (剧本分析)",
+    "image": "图像生成",
+    "voice": "语音合成",
+    "video": "视频生成",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "save": "保存"
+  },
+  "workspace": {
+    "title": "工作台",
+    "newProject": "新建项目",
+    "projectName": "项目名称",
+    "create": "创建"
+  },
+  "project": {
+    "importNovel": "导入小说",
+    "analyze": "剧本分析",
+    "characters": "角色",
+    "locations": "场景",
+    "episodes": "集数",
+    "storyboard": "分镜",
+    "voice": "配音",
+    "video": "成片"
+  }
+}

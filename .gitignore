@@ -1,0 +1,37 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# build
+.next
+out
+dist
+build
+
+# env
+.env
+.env.local
+.env.*.local
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# prisma
+prisma/migrations/**/migration_lock.toml
+
+# ide
+.idea
+.vscode
+*.swp
+*.swo
+
+# os
+.DS_Store
+Thumbs.db
+
+# data
+data/
+docker-logs/

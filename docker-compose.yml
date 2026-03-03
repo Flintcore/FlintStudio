@@ -1,0 +1,82 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: flintstudio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: flintstudio
+      MYSQL_DATABASE: flintstudio
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -pflintstudio"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  redis:
+    image: redis:7-alpine
+    container_name: flintstudio-redis
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  app:
+    build: .
+    container_name: flintstudio-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "mysql://root:flintstudio@mysql:3306/flintstudio"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_USERNAME: ""
+      REDIS_PASSWORD: ""
+      STORAGE_TYPE: local
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "flintstudio-docker-secret-change-in-production"
+      CRON_SECRET: "flintstudio-cron-secret"
+      INTERNAL_TASK_TOKEN: "flintstudio-task-token"
+      API_ENCRYPTION_KEY: "flintstudio-encryption-key-32bytes!!"
+      QUEUE_CONCURRENCY_IMAGE: "4"
+      QUEUE_CONCURRENCY_VIDEO: "2"
+      QUEUE_CONCURRENCY_VOICE: "4"
+      QUEUE_CONCURRENCY_TEXT: "4"
+    ports:
+      - "13000:3000"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        npx prisma db push --skip-generate &&
+        (sleep 3 && echo '' &&
+        echo '========================================' &&
+        echo '  FlintStudio is ready!' &&
+        echo '  http://localhost:13000' &&
+        echo '========================================') &
+        npm run start
+      "
+
+volumes:
+  mysql_data:
+  redis_data:

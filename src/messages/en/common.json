@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "FlintStudio",
+    "tagline": "AI Film Automation · Multi-Agent"
+  },
+  "nav": {
+    "home": "Home",
+    "workspace": "Workspace",
+    "settings": "Settings",
+    "signIn": "Sign In",
+    "signOut": "Sign Out"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiConfig": "API Configuration",
+    "llm": "LLM (Script Analysis)",
+    "image": "Image Generation",
+    "voice": "Voice / TTS",
+    "video": "Video Generation",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "save": "Save"
+  },
+  "workspace": {
+    "title": "Workspace",
+    "newProject": "New Project",
+    "projectName": "Project Name",
+    "create": "Create"
+  },
+  "project": {
+    "importNovel": "Import Novel",
+    "analyze": "Script Analysis",
+    "characters": "Characters",
+    "locations": "Locations",
+    "episodes": "Episodes",
+    "storyboard": "Storyboard",
+    "voice": "Voiceover",
+    "video": "Video"
+  }
+}

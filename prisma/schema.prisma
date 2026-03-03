@@ -1,0 +1,421 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Auth ====================
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  email         String?
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  preferences   UserPreference?
+  tasks         Task[]
+  graphRuns     GraphRun[]
+
+  @@map("user")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtoken")
+}
+
+// ==================== User API 配置（全可配） ====================
+model UserPreference {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  // LLM
+  llmBaseUrl  String?  @default("https://openrouter.ai/api/v1")
+  llmApiKey   String?  @db.Text
+  // 图像
+  imageBaseUrl String?
+  imageApiKey  String?  @db.Text
+  // 语音
+  ttsBaseUrl   String?
+  ttsApiKey    String?  @db.Text
+  // 视频
+  videoBaseUrl String?
+  videoApiKey  String?  @db.Text
+  // 自定义提供商 JSON: [{ id, name, baseUrl, apiKeyEncrypted, type: llm|image|video|tts }]
+  customProviders String? @db.Text
+  // 默认模型选择
+  analysisModel   String?
+  characterModel  String?
+  locationModel   String?
+  storyboardModel String?
+  videoModel      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// ==================== 项目与剧集 ====================
+model Project {
+  id             String                 @id @default(uuid())
+  name           String
+  description    String?                @db.Text
+  mode           String                 @default("novel-promotion")
+  userId         String
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novelPromotion NovelPromotionProject?
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model NovelPromotionProject {
+  id              String                    @id @default(uuid())
+  projectId       String                    @unique
+  analysisModel   String?
+  imageModel      String?
+  videoModel      String?
+  characterModel  String?
+  locationModel   String?
+  storyboardModel String?
+  artStyle        String                    @default("american-comic")
+  videoRatio      String                    @default("9:16")
+  videoResolution String                    @default("720p")
+  imageResolution String                    @default("2K")
+  importStatus    String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  project         Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  characters      NovelPromotionCharacter[]
+  locations       NovelPromotionLocation[]
+  episodes        NovelPromotionEpisode[]
+
+  @@map("novel_promotion_projects")
+}
+
+model NovelPromotionCharacter {
+  id                      String                @id @default(uuid())
+  novelPromotionProjectId String
+  name                    String
+  aliases                 String?               @db.Text
+  profileData             String?               @db.Text
+  voiceId                 String?
+  voiceType               String?
+  customVoiceUrl          String?               @db.Text
+  createdAt               DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  novelPromotionProject   NovelPromotionProject @relation(fields: [novelPromotionProjectId], references: [id], onDelete: Cascade)
+  appearances             CharacterAppearance[]
+
+  @@index([novelPromotionProjectId])
+  @@map("novel_promotion_characters")
+}
+
+model CharacterAppearance {
+  id              String                  @id @default(uuid())
+  characterId     String
+  appearanceIndex Int
+  description     String?                 @db.Text
+  imageUrl        String?                 @db.Text
+  imageMediaId    String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  character       NovelPromotionCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  imageMedia      MediaObject?            @relation("CharacterAppearanceImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([characterId, appearanceIndex])
+  @@index([characterId])
+  @@map("character_appearances")
+}
+
+model NovelPromotionLocation {
+  id                      String                @id @default(uuid())
+  novelPromotionProjectId String
+  name                    String
+  summary                 String?               @db.Text
+  selectedImageId         String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  novelPromotionProject   NovelPromotionProject @relation(fields: [novelPromotionProjectId], references: [id], onDelete: Cascade)
+  images                  LocationImage[]
+
+  @@index([novelPromotionProjectId])
+  @@map("novel_promotion_locations")
+}
+
+model LocationImage {
+  id           String                   @id @default(uuid())
+  locationId   String
+  imageIndex   Int
+  description  String?                  @db.Text
+  imageUrl     String?                  @db.Text
+  isSelected   Boolean                  @default(false)
+  imageMediaId String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  location     NovelPromotionLocation   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  imageMedia   MediaObject?             @relation("LocationImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([locationId, imageIndex])
+  @@index([locationId])
+  @@map("location_images")
+}
+
+model NovelPromotionEpisode {
+  id                      String                     @id @default(uuid())
+  novelPromotionProjectId String
+  episodeNumber           Int
+  name                    String
+  novelText               String?                    @db.Text
+  audioUrl                String?                    @db.Text
+  audioMediaId            String?
+  videoUrl                String?                    @db.Text
+  srtContent              String?                    @db.Text
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  novelPromotionProject   NovelPromotionProject      @relation(fields: [novelPromotionProjectId], references: [id], onDelete: Cascade)
+  clips                   NovelPromotionClip[]
+  shots                   NovelPromotionShot[]
+  storyboards             NovelPromotionStoryboard[]
+  voiceLines              NovelPromotionVoiceLine[]
+
+  @@unique([novelPromotionProjectId, episodeNumber])
+  @@index([novelPromotionProjectId])
+  @@map("novel_promotion_episodes")
+}
+
+model NovelPromotionClip {
+  id         String                    @id @default(uuid())
+  episodeId  String
+  summary    String                    @db.Text
+  location   String?                   @db.Text
+  content    String                    @db.Text
+  characters String?                   @db.Text
+  episode    NovelPromotionEpisode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  shots      NovelPromotionShot[]
+  storyboard NovelPromotionStoryboard?
+
+  @@index([episodeId])
+  @@map("novel_promotion_clips")
+}
+
+model NovelPromotionShot {
+  id         String                @id @default(uuid())
+  episodeId  String
+  clipId     String?
+  shotId     String
+  srtStart   Int
+  srtEnd     Int
+  plot       String?               @db.Text
+  imagePrompt String?              @db.Text
+  imageUrl   String?               @db.Text
+  imageMediaId String?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  episode    NovelPromotionEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  clip       NovelPromotionClip?   @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  imageMedia MediaObject?          @relation("ShotImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@index([episodeId])
+  @@index([clipId])
+  @@map("novel_promotion_shots")
+}
+
+model NovelPromotionStoryboard {
+  id         String                @id @default(uuid())
+  episodeId  String
+  clipId     String                @unique
+  panelCount Int                   @default(9)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  clip       NovelPromotionClip    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  episode    NovelPromotionEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  panels     NovelPromotionPanel[]
+
+  @@index([episodeId])
+  @@map("novel_promotion_storyboards")
+}
+
+model NovelPromotionPanel {
+  id           String                   @id @default(uuid())
+  storyboardId String
+  panelIndex   Int
+  description  String?                  @db.Text
+  imagePrompt  String?                  @db.Text
+  imageUrl     String?                  @db.Text
+  imageMediaId String?
+  videoUrl     String?                  @db.Text
+  duration     Float?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                 @updatedAt
+  storyboard   NovelPromotionStoryboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+  imageMedia   MediaObject?             @relation("PanelImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([storyboardId, panelIndex])
+  @@index([storyboardId])
+  @@map("novel_promotion_panels")
+}
+
+model NovelPromotionVoiceLine {
+  id            String                @id @default(uuid())
+  episodeId     String
+  lineIndex     Int
+  speaker       String
+  content       String                @db.Text
+  voiceId       String?
+  audioUrl      String?               @db.Text
+  audioMediaId  String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  episode       NovelPromotionEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  audioMedia    MediaObject?          @relation("VoiceLineAudioMedia", fields: [audioMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([episodeId, lineIndex])
+  @@index([episodeId])
+  @@map("novel_promotion_voice_lines")
+}
+
+// ==================== 工作流运行（Dify/n8n 风格） ====================
+model GraphRun {
+  id           String      @id @default(uuid())
+  userId       String
+  projectId    String
+  workflowId   String     // 如 novel-to-video
+  status       String     @default("queued") // queued | running | completed | failed | canceled
+  input        Json?      // 工作流输入，如 { novelText }
+  output       Json?      // 最终输出
+  currentPhase String?    // 当前阶段标识，便于 advance
+  errorMessage String?    @db.Text
+  queuedAt     DateTime   @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps  GraphStep[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([workflowId])
+  @@map("graph_runs")
+}
+
+model GraphStep {
+  id         String    @id @default(uuid())
+  runId      String
+  stepKey    String    // 节点 key，如 analyze_novel, story_to_script
+  stepTitle  String
+  status     String    @default("pending") // pending | running | completed | failed
+  taskId     String?   // 关联的 Task，用于等待完成
+  payload    Json?
+  result     Json?
+  errorMessage String?  @db.Text
+  stepIndex  Int       // 执行顺序
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  run GraphRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, stepKey])
+  @@index([runId])
+  @@map("graph_steps")
+}
+
+// ==================== 异步任务 ====================
+model Task {
+  id           String   @id @default(uuid())
+  userId       String
+  projectId    String
+  episodeId    String?
+  runId        String?  // 关联工作流 Run，完成后用于 advance
+  type         String
+  targetType   String
+  targetId     String
+  status       String   @default("queued")
+  progress     Int      @default(0)
+  payload      Json?
+  result       Json?
+  errorMessage String?  @db.Text
+  queuedAt     DateTime @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([type])
+  @@index([runId])
+  @@map("tasks")
+}
+
+// ==================== 媒体存储 ====================
+model MediaObject {
+  id         String   @id @default(uuid())
+  publicId  String   @unique
+  storageKey String  @unique @db.VarChar(512)
+  mimeType  String?
+  sizeBytes BigInt?
+  width     Int?
+  height    Int?
+  durationMs Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  characterAppearanceImages CharacterAppearance[]   @relation("CharacterAppearanceImage")
+  locationImages            LocationImage[]        @relation("LocationImageMedia")
+  shotImages                NovelPromotionShot[]    @relation("ShotImageMedia")
+  panelImages               NovelPromotionPanel[]   @relation("PanelImageMedia")
+  voiceLineAudios           NovelPromotionVoiceLine[] @relation("VoiceLineAudioMedia")
+
+  @@map("media_objects")
+}
