@@ -55,8 +55,6 @@ export async function runScriptToStoryboard(opts: {
         panelIndex: i,
         description: p?.description ? String(p.description) : null,
         imagePrompt: p?.imagePrompt ? String(p.imagePrompt) : null,
-        location: p?.location ? String(p.location) : null,
-        characters: Array.isArray(p?.characters) ? JSON.stringify(p.characters) : null,
       },
     });
     panelIds.push(created.id);

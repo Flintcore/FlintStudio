@@ -15,10 +15,13 @@
 
 <p align="center">
   <a href="#-功能--features">功能</a> •
+  <a href="#-预览--preview">预览</a> •
   <a href="#-快速开始--quick-start">快速开始</a> •
   <a href="#-配置--configuration">配置</a> •
   <a href="#-流程--workflow">流程</a> •
   <a href="#-技术栈--tech-stack">技术栈</a> •
+  <a href="#-联系方式--contact">联系方式</a> •
+  <a href="#-致谢--acknowledgments">致谢</a>
 </p>
 
 ---
@@ -30,6 +33,22 @@ FlintStudio 是一款**开源、可自托管**的 AI 影视自动化平台。粘
 
 **English**  
 FlintStudio is an **open-source, self-hosted** AI film automation platform. Paste a novel or script, hit one button, and the pipeline **runs automatically**: script analysis → scene splitting → storyboard → image generation → voiceover (TTS) → video composition (FFmpeg). No clicking through each step. All AI services (LLM, image, TTS) are configured in Settings with your own Base URL and API Key—**no vendor lock-in**. Use OpenRouter, OpenAI, or any compatible endpoint for a full novel-to-video workflow.
+
+--- 
+
+## 🖼️ 预览 · Preview
+
+**中文**  
+下方为产品界面与成片效果预览（可将截图或演示图放入仓库 `docs/` 目录后替换链接）。
+
+**English**  
+Preview of the UI and generated video. Replace the links below with your own screenshots in the `docs/` folder.
+
+<p align="center">
+  <img src="docs/preview.png" alt="FlintStudio 界面预览" width="800" />
+</p>
+
+*（请将实际截图保存为 `docs/preview.png`，或修改上方的 `docs/preview.png` 为你的图片路径 / Please add your screenshot as `docs/preview.png` or change the path above.)*
 
 ---
 
@@ -201,9 +220,41 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 
 ---
 
+## 📮 联系方式 · Contact
+
+**中文**  
+- **Email**：[qihuanteam@gmail.com](mailto:qihuanteam@gmail.com)
+- **微信号**：QTeam256（添加好友请备注 FlintStudio）
+- **微信群**：扫码加入交流群，交流使用心得与反馈。  
+  ![微信群二维码](docs/wechat-group.png)
+- 若二维码失效，可通过 GitHub Issues 留言。
+
+**English**  
+- **Email**: [qihuanteam@gmail.com](mailto:qihuanteam@gmail.com)
+- **WeChat ID**: QTeam256 (mention FlintStudio when adding)
+- **WeChat group**: Scan the QR code to join the community.  
+  ![WeChat group QR](docs/wechat-group.png)
+- If the QR code has expired, please open a [GitHub Issue](https://github.com/Flintcore/FlintStudio/issues).
+
+*（请将微信群二维码图片保存为 `docs/wechat-group.png` / Please add your WeChat group QR code as `docs/wechat-group.png`.)*
+
+---
+
 ## 📄 许可证 · License
 
 **MIT** · See [LICENSE](LICENSE).
+
+---
+
+## 🙏 致谢 · Acknowledgments
+
+**中文**  
+致谢 [waoowaoo](https://github.com/waoowaooAI/waoowaoo) 的技术栈与产品思路参考。
+
+**English**  
+Thanks to [waoowaoo](https://github.com/waoowaooAI/waoowaoo) for tech stack and product inspiration.
+
+---
 
 
 <p align="center">

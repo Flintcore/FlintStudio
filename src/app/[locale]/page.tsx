@@ -1,11 +1,10 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (session) redirect("/workspace");
 
   return (

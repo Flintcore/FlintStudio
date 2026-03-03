@@ -1,6 +1,10 @@
 import { Worker } from "bullmq";
 import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
+
+// BullMQ 与项目 ioredis 类型不兼容，运行时兼容
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const workerConnection = queueRedis as any;
 import type { TaskJobData } from "@/lib/task/types";
 import { prisma } from "@/lib/db";
 import { runAnalyzeNovel } from "@/lib/workflow/handlers/analyze-novel";
@@ -263,7 +267,7 @@ async function processVoiceJob(job: { data: TaskJobData }) {
     try {
       const episode = await prisma.novelPromotionEpisode.findUnique({
         where: { id: episodeId },
-        include: { clips: { orderBy: { createdAt: "asc" } } },
+        include: { clips: true },
       });
       if (!episode || episode.clips.length === 0) {
         await prisma.task.update({
@@ -337,7 +341,6 @@ async function processVideoJob(job: { data: TaskJobData }) {
         include: {
           voiceLines: { orderBy: { lineIndex: "asc" } },
           clips: {
-            orderBy: { createdAt: "asc" },
             include: {
               storyboard: { include: { panels: { orderBy: { panelIndex: "asc" } } } },
             },
@@ -406,25 +409,25 @@ async function processVideoJob(job: { data: TaskJobData }) {
 const textWorker = new Worker<TaskJobData>(
   QUEUE_NAME.TEXT,
   processTextJob,
-  { connection: queueRedis, concurrency: concurrency.text }
+  { connection: workerConnection, concurrency: concurrency.text }
 );
 
 const imageWorker = new Worker<TaskJobData>(
   QUEUE_NAME.IMAGE,
   processImageJob,
-  { connection: queueRedis, concurrency: concurrency.image }
+  { connection: workerConnection, concurrency: concurrency.image }
 );
 
 const voiceWorker = new Worker<TaskJobData>(
   QUEUE_NAME.VOICE,
   processVoiceJob,
-  { connection: queueRedis, concurrency: concurrency.voice }
+  { connection: workerConnection, concurrency: concurrency.voice }
 );
 
 const videoWorker = new Worker<TaskJobData>(
   QUEUE_NAME.VIDEO,
   processVideoJob,
-  { connection: queueRedis, concurrency: concurrency.video }
+  { connection: workerConnection, concurrency: concurrency.video }
 );
 
 const workers = [textWorker, imageWorker, voiceWorker, videoWorker];

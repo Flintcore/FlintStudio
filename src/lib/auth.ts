@@ -1,10 +1,17 @@
+import { getServerSession } from "next-auth/next";
+import NextAuth from "next-auth/next";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import type { NextAuthOptions } from "next-auth";
 
-export const authOptions: NextAuthOptions = {
+declare module "next-auth" {
+  interface Session {
+    user: { id: string; name?: string | null; image?: string | null };
+  }
+}
+
+export const authOptions = {
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   useSecureCookies: (process.env.NEXTAUTH_URL || "").startsWith("https://"),
@@ -27,16 +34,37 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt" as const },
   pages: { signIn: "/auth/signin" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({
+      token,
+      user,
+    }: {
+      token: { id?: string; [key: string]: unknown };
+      user?: { id: string };
+    }) {
       if (user) token.id = user.id;
       return token;
     },
-    async session({ session, token }) {
+    async session({
+      session,
+      token,
+    }: {
+      session: { user?: { id?: string } };
+      token: { id?: string };
+    }) {
       if (session.user) session.user.id = token.id as string;
       return session;
     },
   },
 };
+
+export interface SessionWithUser {
+  user: { id: string; name?: string | null; image?: string | null };
+}
+
+export async function getSession(): Promise<SessionWithUser | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return getServerSession(authOptions as any) as Promise<SessionWithUser | null>;
+}

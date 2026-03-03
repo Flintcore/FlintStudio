@@ -17,25 +17,15 @@ const defaultJobOptions = {
   backoff: { type: "exponential" as const, delay: 2000 },
 };
 
-export const imageQueue = new Queue<TaskJobData>(QUEUE_NAME.IMAGE, {
-  connection: queueRedis,
-  defaultJobOptions,
-});
+// BullMQ 自带 ioredis 类型与项目 ioredis 不兼容，运行时兼容，此处做类型断言
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const connection = queueRedis as any;
+const queueOptions = { connection, defaultJobOptions };
 
-export const videoQueue = new Queue<TaskJobData>(QUEUE_NAME.VIDEO, {
-  connection: queueRedis,
-  defaultJobOptions,
-});
-
-export const voiceQueue = new Queue<TaskJobData>(QUEUE_NAME.VOICE, {
-  connection: queueRedis,
-  defaultJobOptions,
-});
-
-export const textQueue = new Queue<TaskJobData>(QUEUE_NAME.TEXT, {
-  connection: queueRedis,
-  defaultJobOptions,
-});
+export const imageQueue = new Queue<TaskJobData>(QUEUE_NAME.IMAGE, queueOptions);
+export const videoQueue = new Queue<TaskJobData>(QUEUE_NAME.VIDEO, queueOptions);
+export const voiceQueue = new Queue<TaskJobData>(QUEUE_NAME.VOICE, queueOptions);
+export const textQueue = new Queue<TaskJobData>(QUEUE_NAME.TEXT, queueOptions);
 
 const TEXT_TYPES = new Set<TaskType>([
   TASK_TYPE.ANALYZE_NOVEL,

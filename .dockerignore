@@ -1,0 +1,26 @@
+# Dependencies (reinstalled in container)
+node_modules
+npm-debug.log*
+
+# Build output
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# IDE / OS
+.cursor
+.vscode
+.DS_Store
+Thumbs.db
+
+# Env (use compose/env, not host .env)
+.env
+.env.*
+!.env.example
+
+# Docs / dev
+*.md
+waoowaoo

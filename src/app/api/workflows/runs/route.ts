@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
 import { listRuns } from "@/lib/workflow/service";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

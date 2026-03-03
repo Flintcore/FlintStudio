@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getQueueByType, getQueueTypeByTaskType } from "@/lib/task/queues";
-import { TASK_TYPE } from "@/lib/task/types";
+import { TASK_TYPE, type TaskJobData } from "@/lib/task/types";
 
 /**
  * 提交剧本分析任务：将小说文本解析为角色、场景、集数。
@@ -13,7 +12,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -48,7 +47,8 @@ export async function POST(
   });
 
   const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.ANALYZE_NOVEL));
-  await queue.add(
+  // BullMQ 泛型对 job name 的推断过严，此处通过 unknown 断言
+  await (queue as unknown as { add: (name: string, data: TaskJobData, opts?: { jobId?: string }) => Promise<unknown> }).add(
     "analyze-novel",
     {
       taskId: task.id,

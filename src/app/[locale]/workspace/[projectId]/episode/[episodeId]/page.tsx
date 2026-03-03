@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export default async function EpisodePage({
@@ -9,7 +8,7 @@ export default async function EpisodePage({
 }: {
   params: Promise<{ projectId: string; episodeId: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) redirect("/auth/signin");
   const { projectId, episodeId } = await params;
 
@@ -25,7 +24,7 @@ export default async function EpisodePage({
       novelPromotionProjectId: project.novelPromotion.id,
     },
     include: {
-      clips: { orderBy: { createdAt: "asc" } },
+      clips: true,
       storyboards: {
         include: { panels: { orderBy: { panelIndex: "asc" } } },
       },

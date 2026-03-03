@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
+import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ApiConfigForm } from "./api-config-form";
 
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) redirect("/auth/signin");
 
   const prefs = await prisma.userPreference.findUnique({
