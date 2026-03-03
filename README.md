@@ -206,17 +206,6 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 
 **MIT** · See [LICENSE](LICENSE).
 
----
-
-## 🙏 致谢 · Acknowledgments
-
-**中文**  
-致谢 [waoowaoo](https://github.com/waoowaooAI/waoowaoo) 的技术栈与产品思路参考。
-
-**English**  
-Thanks to [waoowaoo](https://github.com/waoowaooAI/waoowaoo) for tech stack and product inspiration.
-
----
 
 <p align="center">
   <strong>如果这个项目对你有帮助，欢迎 Star ⭐</strong><br />
