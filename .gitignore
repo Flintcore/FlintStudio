@@ -35,3 +35,6 @@ Thumbs.db
 # data
 data/
 docker-logs/
+
+# reference (do not publish)
+waoowaoo/
