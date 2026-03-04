@@ -1,25 +1,28 @@
 import { getUserApiConfig } from "@/lib/api-config";
+import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 
 /** 调用用户配置的图像 API（OpenAI 兼容 /v1/images/generations），返回图片 URL 或 base64 */
 export async function generateImage(opts: {
   userId: string;
   prompt: string;
   size?: string;
+  model?: string;
 }): Promise<{ url?: string; b64?: string }> {
   const config = await getUserApiConfig(opts.userId, "image");
   if (!config?.baseUrl || !config?.apiKey) {
     throw new Error("请先在设置中配置图像生成 Base URL 和 API Key");
   }
 
-  const base = config.baseUrl.replace(/\/$/, "");
-  const res = await fetch(`${base}/images/generations`, {
+  const base = normalizeOpenAIBaseUrl(config.baseUrl);
+  const model = opts.model ?? config.model ?? "dall-e-3";
+  const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.imagesGenerations}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: "dall-e-3",
+      model,
       prompt: opts.prompt.slice(0, 4000),
       n: 1,
       size: opts.size ?? "1024x1024",

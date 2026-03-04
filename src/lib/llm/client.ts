@@ -1,6 +1,7 @@
 import { getUserApiConfig } from "@/lib/api-config";
+import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 
-/** 调用用户配置的 LLM（OpenAI 兼容），返回 JSON 解析结果 */
+/** 调用用户配置的 LLM（OpenAI 兼容 /v1/chat/completions），返回 JSON 解析结果 */
 export async function llmJson<T = Record<string, unknown>>(
   userId: string,
   systemPrompt: string,
@@ -12,10 +13,11 @@ export async function llmJson<T = Record<string, unknown>>(
     throw new Error("请先在设置中配置 LLM Base URL 和 API Key");
   }
 
-  const model = options?.model ?? "openai/gpt-4o-mini";
+  const base = normalizeOpenAIBaseUrl(config.baseUrl);
+  const model = options?.model ?? config.model ?? "gpt-4o-mini";
   const temperature = options?.temperature ?? 0.3;
 
-  const res = await fetch(`${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+  const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.chatCompletions}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

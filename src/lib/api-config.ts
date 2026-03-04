@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/db";
+import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 
 export type ApiType = "llm" | "image" | "voice" | "video";
 
 export interface ApiConfig {
   baseUrl: string;
   apiKey: string;
+  /** 可选模型名，如 openai/gpt-4o-mini、gpt-4o、dall-e-3、tts-1 */
+  model?: string | null;
 }
 
 export async function getUserApiConfig(
@@ -18,19 +21,35 @@ export async function getUserApiConfig(
   switch (type) {
     case "llm":
       return prefs.llmBaseUrl && prefs.llmApiKey
-        ? { baseUrl: prefs.llmBaseUrl, apiKey: prefs.llmApiKey }
+        ? {
+            baseUrl: prefs.llmBaseUrl,
+            apiKey: prefs.llmApiKey,
+            model: prefs.analysisModel ?? undefined,
+          }
         : null;
     case "image":
       return prefs.imageBaseUrl && prefs.imageApiKey
-        ? { baseUrl: prefs.imageBaseUrl, apiKey: prefs.imageApiKey }
+        ? {
+            baseUrl: prefs.imageBaseUrl,
+            apiKey: prefs.imageApiKey,
+            model: prefs.storyboardModel ?? undefined,
+          }
         : null;
     case "voice":
       return prefs.ttsBaseUrl && prefs.ttsApiKey
-        ? { baseUrl: prefs.ttsBaseUrl, apiKey: prefs.ttsApiKey }
+        ? {
+            baseUrl: prefs.ttsBaseUrl,
+            apiKey: prefs.ttsApiKey,
+            model: undefined,
+          }
         : null;
     case "video":
       return prefs.videoBaseUrl && prefs.videoApiKey
-        ? { baseUrl: prefs.videoBaseUrl, apiKey: prefs.videoApiKey }
+        ? {
+            baseUrl: prefs.videoBaseUrl,
+            apiKey: prefs.videoApiKey,
+            model: prefs.videoModel ?? undefined,
+          }
         : null;
     default:
       return null;

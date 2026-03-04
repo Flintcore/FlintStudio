@@ -1,6 +1,7 @@
 import { getUserApiConfig } from "@/lib/api-config";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
@@ -17,8 +18,8 @@ export async function generateSpeech(opts: {
     throw new Error("请先在设置中配置语音合成 Base URL 和 API Key");
   }
 
-  const base = config.baseUrl.replace(/\/$/, "");
-  const res = await fetch(`${base}/audio/speech`, {
+  const base = normalizeOpenAIBaseUrl(config.baseUrl);
+  const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.audioSpeech}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
