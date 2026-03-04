@@ -1,19 +1,281 @@
 @import "tailwindcss";
 
+/* 浅色系配色（兼容 waoowaoo 风格玻璃态与动效） */
 :root {
-  --background: #0f0f12;
-  --foreground: #e4e4e7;
-  --card: #18181b;
-  --muted: #71717a;
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-hover: #f5f5f4;
+  --border: #e7e5e4;
+  --border-light: #f5f5f4;
+  --muted: #78716c;
+  --muted-light: #a8a29e;
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-muted: rgba(217, 119, 6, 0.12);
+  --accent-foreground: #ffffff;
+  --success: #16a34a;
+  --error: #dc2626;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 10px rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-md: 0 6px 18px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 10px 24px rgb(0 0 0 / 0.1);
+  --blur-nav: 16px;
+  --blur-md: 8px;
+  --blur-lg: 12px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 统一焦点环 */
+input:focus-visible,
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 滚动条 - 浅色适配 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--border-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--muted-light);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ========== 可复用组件类（参考 waoowaoo 玻璃态） ========== */
+.card-base {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.card-base:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(var(--blur-nav)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--blur-nav)) saturate(1.12);
+  box-shadow: 0 8px 18px rgb(15 32 66 / 0.08);
+  border-bottom: 1px solid var(--border);
+}
+
+.input-base {
+  border-radius: var(--radius);
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* 玻璃表面（waoowaoo glass-surface） */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border-radius: var(--radius-lg);
+}
+.glass-surface:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 自下而上滑入（waoowaoo Toast / 弹层） */
+@keyframes slide-up-from-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slide-up-from-bottom {
+  animation: slide-up-from-bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 渐入延迟 */
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-150 { animation-delay: 150ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-250 { animation-delay: 250ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+
+/* ========== 液体/浮动装饰动画（waoowaoo 同款） ========== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-40px) translateX(30px) scale(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-20px) translateX(-20px) scale(0.9);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateY(30px) translateX(40px) scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translateY(50px) translateX(-40px) scale(0.85);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-30px) translateX(60px) scale(1.2);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translateY(20px) translateX(-30px) scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.4;
+  }
+  33% {
+    transform: translateY(-60px) translateX(50px) scale(1.3);
+    opacity: 0.7;
+  }
+  66% {
+    transform: translateY(40px) translateX(-60px) scale(0.8);
+    opacity: 0.6;
+  }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 18s ease-in-out infinite;
+  animation-delay: -3s;
+}
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
+  animation-delay: -6s;
+}
+
+/* 进度条动画（waoowaoo ProgressToast 风格） */
+@keyframes progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.animate-progress {
+  animation: progress 2s ease-in-out infinite;
+}
+
+/* 渐变动画 */
+@keyframes gradient-x {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient-x {
+  background-size: 200% auto;
+  animation: gradient-x 3s linear infinite;
+}
+
+/* 慢速呼吸/脉冲 */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 通用过渡 */
+.transition-smooth {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.hover-lift:active {
+  transform: translateY(0);
 }

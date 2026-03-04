@@ -35,7 +35,7 @@ export const authOptions = {
     }),
   ],
   session: { strategy: "jwt" as const },
-  pages: { signIn: "/auth/signin" },
+  pages: { signIn: "/workspace" },
   callbacks: {
     async jwt({
       token,
@@ -62,6 +62,40 @@ export const authOptions = {
 
 export interface SessionWithUser {
   user: { id: string; name?: string | null; image?: string | null };
+}
+
+const DEFAULT_USER_NAME = "__default";
+
+/** 未登录时使用的默认用户 ID；若不存在会创建（并发安全） */
+export async function getOrCreateDefaultUser(): Promise<{ id: string; name: string }> {
+  const existing = await prisma.user.findUnique({ where: { name: DEFAULT_USER_NAME } });
+  if (existing) return { id: existing.id, name: existing.name };
+  try {
+    const user = await prisma.user.create({
+      data: { name: DEFAULT_USER_NAME },
+    });
+    return { id: user.id, name: user.name };
+  } catch {
+    const again = await prisma.user.findUnique({ where: { name: DEFAULT_USER_NAME } });
+    if (again) return { id: again.id, name: again.name };
+    throw new Error("无法创建或获取默认用户");
+  }
+}
+
+/** 当前用户 ID：已登录用 session，未登录用默认用户 */
+export async function getCurrentUserId(): Promise<string> {
+  const session = await getSession();
+  if (session?.user?.id) return session.user.id;
+  const defaultUser = await getOrCreateDefaultUser();
+  return defaultUser.id;
+}
+
+/** 当前会话：已登录用 session，未登录则返回默认用户的伪 session */
+export async function getCurrentSession(): Promise<SessionWithUser> {
+  const session = await getSession();
+  if (session?.user?.id) return session;
+  const defaultUser = await getOrCreateDefaultUser();
+  return { user: { id: defaultUser.id, name: defaultUser.name } };
 }
 
 export async function getSession(): Promise<SessionWithUser | null> {

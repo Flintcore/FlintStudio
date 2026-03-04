@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { getRunById } from "@/lib/workflow/service";
 
@@ -6,10 +6,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ runId: string }> }
 ) {
-  const session = await getSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await getCurrentSession();
 
   const { runId } = await params;
   const run = await getRunById(runId);

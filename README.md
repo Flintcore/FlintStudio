@@ -94,7 +94,7 @@ cd FlintStudio
 docker compose up -d
 ```
 
-打开 **http://localhost:13000**，注册/登录 → 工作台 → 新建项目 → 粘贴小说 → 点击「启动工作流」。首次启动会自动完成数据库初始化。
+打开 **http://localhost:13000**，**打开即进入工作台**（无需登录）→ 新建项目 → 粘贴小说 → 点击「启动工作流」。首次启动会自动完成数据库初始化。
 
 **本地开发**（需已启动 MySQL、Redis）：
 
@@ -108,6 +108,31 @@ npm run dev
 
 访问 http://localhost:3000。Worker 会随 `npm run dev` 一起启动。
 
+**若使用 Docker 且修改代码后仍看到登录页或 HTTP 405**，多半是镜像/构建缓存未更新，请**无缓存重新构建并启动**：
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+或一步到位：
+
+```bash
+docker compose down && docker compose build --no-cache && docker compose up -d
+```
+
+如需同时清理未使用的镜像、容器和构建缓存（释放磁盘）：
+
+```bash
+docker compose down
+docker system prune -a -f --volumes
+docker compose build --no-cache
+docker compose up -d
+```
+
+注意：`docker system prune -a` 会删除本机所有未使用的镜像/容器，若有其他项目依赖请勿使用，仅用前两条命令即可。
+
 ---
 
 ### English
@@ -120,7 +145,7 @@ cd FlintStudio
 docker compose up -d
 ```
 
-Open **http://localhost:13000**, sign up → Workspace → New project → paste your novel → click **Start workflow**. DB is initialized on first run.
+Open **http://localhost:13000** — **you land on the workspace directly** (no login) → New project → paste your novel → click **Start workflow**. DB is initialized on first run.
 
 **Local dev** (with MySQL and Redis running):
 
@@ -133,6 +158,31 @@ npm run dev
 ```
 
 Visit http://localhost:3000. Workers start together with `npm run dev`.
+
+**If using Docker and you still see the login page or HTTP 405 after code changes**, the image is likely using a cached build. **Rebuild without cache and restart**:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+Or in one line:
+
+```bash
+docker compose down && docker compose build --no-cache && docker compose up -d
+```
+
+To also remove unused images, containers, and build cache (frees disk):
+
+```bash
+docker compose down
+docker system prune -a -f --volumes
+docker compose build --no-cache
+docker compose up -d
+```
+
+Note: `docker system prune -a` removes all unused images/containers on the host; skip it if you have other projects.
 
 ---
 
@@ -164,7 +214,7 @@ All keys stay in your DB and env; nothing is sent to third parties.
 
 **中文**
 
-1. **注册/登录** → **工作台** → **新建项目**
+1. **工作台**（打开即进）→ **新建项目**
 2. 进入项目 → 在「一键生成」框内**粘贴小说或剧本文本** → 点击 **启动工作流**
 3. 工作流**自动按顺序执行**（无需再点下一步）：
    - 剧本分析 → 分场 → 分镜 → 出图 → 配音 → 视频合成
@@ -172,7 +222,7 @@ All keys stay in your DB and env; nothing is sent to third parties.
 
 **English**
 
-1. **Sign up / Log in** → **Workspace** → **New project**
+1. **Workspace** (opens directly) → **New project**
 2. Open the project → **Paste novel or script** in the one-click box → click **Start workflow**
 3. The workflow **runs in order automatically** (no manual “next”):
    - Script analysis → Scene split → Storyboard → Images → Voiceover → Video composition
@@ -205,7 +255,7 @@ FlintStudio/
 │   └── lib/workers/          # BullMQ 四类 Worker · Four worker types
 ├── docker-compose.yml
 ├── Dockerfile                # 含 ffmpeg · Includes ffmpeg
-└── FLINTSTUDIO_PLAN.md       # 详细规划 · Detailed plan
+└── CHANGELOG.md       # 更新日志 · Changelog
 ```
 
 ---

@@ -48,7 +48,7 @@ services:
       REDIS_USERNAME: ""
       REDIS_PASSWORD: ""
       STORAGE_TYPE: local
-      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_URL: "http://localhost:13000"
       NEXTAUTH_SECRET: "flintstudio-docker-secret-change-in-production"
       CRON_SECRET: "flintstudio-cron-secret"
       INTERNAL_TASK_TOKEN: "flintstudio-task-token"

@@ -39,7 +39,7 @@ docker-logs/
 # reference (do not publish)
 waoowaoo/
 
-# docs (only root README.md is published)
+# docs (only README.md and CHANGELOG.md are published)
 docs/README.md
 FLINTSTUDIO_PLAN.md
 GITHUB_RELEASE.md

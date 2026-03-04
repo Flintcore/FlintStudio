@@ -1,12 +1,9 @@
-import { getSession } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { listRuns } from "@/lib/workflow/service";
 
 export async function GET(req: Request) {
-  const session = await getSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await getCurrentSession();
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId") ?? undefined;
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 100);

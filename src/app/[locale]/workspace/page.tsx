@@ -1,11 +1,10 @@
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { getCurrentSession } from "@/lib/auth";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { AppHeaderWorkspace } from "../components/app-header";
 
 export default async function WorkspacePage() {
-  const session = await getSession();
-  if (!session?.user?.id) redirect("/auth/signin");
+  const session = await getCurrentSession();
 
   const projects = await prisma.project.findMany({
     where: { userId: session.user.id },
@@ -14,63 +13,55 @@ export default async function WorkspacePage() {
   });
 
   return (
-    <div className="min-h-screen p-6">
-      <header className="mb-8 flex items-center justify-between border-b border-zinc-700 pb-4">
-        <Link href="/workspace" className="text-xl font-bold">
-          FlintStudio
-        </Link>
-        <nav className="flex items-center gap-4">
+    <div className="min-h-screen">
+      <AppHeaderWorkspace />
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 animate-fade-in">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+            工作台
+          </h2>
           <Link
-            href="/settings"
-            className="text-sm text-zinc-400 hover:text-white"
+            href="/api/projects/create"
+            className="inline-flex items-center justify-center rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] transition-smooth hover-lift animate-scale-in"
           >
-            设置
+            + 新建项目
           </Link>
-          <Link
-            href="/api/auth/signout"
-            className="text-sm text-zinc-400 hover:text-white"
-          >
-            退出
-          </Link>
-        </nav>
-      </header>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold">工作台</h2>
-        <Link
-          href="/api/projects/create"
-          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-black hover:bg-amber-400"
-        >
-          + 新建项目
-        </Link>
-      </div>
-      {projects.length === 0 ? (
-        <div className="rounded-xl border border-zinc-700 bg-zinc-900/30 p-12 text-center text-zinc-500">
-          <p>暂无项目。点击「新建项目」或</p>
-          <p className="mt-2">
-            <Link href="/api/projects/create" className="text-amber-500 hover:underline">
-              创建第一个项目
-            </Link>
-          </p>
         </div>
-      ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <Link
-                href={`/workspace/${p.id}`}
-                className="block rounded-xl border border-zinc-700 bg-zinc-900/50 p-4 transition hover:border-amber-500/50 hover:bg-zinc-800/50"
-              >
-                <h3 className="font-medium">{p.name}</h3>
-                {p.description && (
-                  <p className="mt-1 text-sm text-zinc-500 line-clamp-2">
-                    {p.description}
-                  </p>
-                )}
+
+        {projects.length === 0 ? (
+          <div className="card-base glass-surface mt-8 p-12 text-center animate-slide-up animation-delay-100 relative overflow-hidden">
+            {/* 装饰性浮动光斑（waoowaoo 风格） */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute top-1/4 left-1/4 h-24 w-24 rounded-full bg-[var(--accent)]/10 animate-float" />
+              <div className="absolute bottom-1/4 right-1/4 h-20 w-20 rounded-full bg-[var(--accent)]/8 animate-float-delayed" />
+            </div>
+            <p className="relative text-[var(--muted)]">暂无项目</p>
+            <p className="relative mt-2 text-sm text-[var(--muted)]">
+              <Link href="/api/projects/create" className="text-[var(--accent)] hover:underline font-medium transition-smooth">
+                创建第一个项目
               </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((p, i) => (
+              <li key={p.id} className="animate-slide-up" style={{ animationDelay: `${50 + i * 50}ms` }}>
+                <Link
+                  href={`/workspace/${p.id}`}
+                  className="card-base hover-lift block rounded-2xl border border-[var(--border)] p-5 hover:border-[var(--accent)]/30"
+                >
+                  <h3 className="font-medium text-[var(--foreground)]">{p.name}</h3>
+                  {p.description && (
+                    <p className="mt-1 text-sm text-[var(--muted)] line-clamp-2">
+                      {p.description}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
     </div>
   );
 }

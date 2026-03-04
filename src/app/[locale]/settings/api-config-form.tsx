@@ -51,90 +51,90 @@ export function ApiConfigForm({
         <p
           className={
             msg.type === "ok"
-              ? "rounded bg-emerald-500/20 px-3 py-2 text-sm text-emerald-400"
-              : "rounded bg-red-500/20 px-3 py-2 text-sm text-red-400"
+              ? "rounded-xl bg-[var(--success)]/10 px-4 py-3 text-sm text-[var(--success)] animate-fade-in"
+              : "rounded-xl bg-[var(--error)]/10 px-4 py-3 text-sm text-[var(--error)] animate-fade-in"
           }
         >
           {msg.text}
         </p>
       )}
 
-      <section className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
-        <h3 className="mb-3 font-medium">大语言模型 (剧本分析)</h3>
-        <div className="space-y-2">
+      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
+        <h3 className="font-medium text-[var(--foreground)]">大语言模型 (剧本分析)</h3>
+        <div className="mt-3 space-y-3">
           <input
             type="url"
             placeholder="Base URL (如 https://openrouter.ai/api/v1)"
             value={form.llmBaseUrl}
             onChange={(e) => setForm((f) => ({ ...f, llmBaseUrl: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
           <input
             type="password"
             placeholder="API Key"
             value={form.llmApiKey}
             onChange={(e) => setForm((f) => ({ ...f, llmApiKey: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
-        <h3 className="mb-3 font-medium">图像生成</h3>
-        <div className="space-y-2">
+      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
+        <h3 className="font-medium text-[var(--foreground)]">图像生成</h3>
+        <div className="mt-3 space-y-3">
           <input
             type="url"
             placeholder="Base URL (OpenAI 兼容)"
             value={form.imageBaseUrl}
             onChange={(e) => setForm((f) => ({ ...f, imageBaseUrl: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
           <input
             type="password"
             placeholder="API Key"
             value={form.imageApiKey}
             onChange={(e) => setForm((f) => ({ ...f, imageApiKey: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
-        <h3 className="mb-3 font-medium">语音合成 (TTS)</h3>
-        <div className="space-y-2">
+      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
+        <h3 className="font-medium text-[var(--foreground)]">语音合成 (TTS)</h3>
+        <div className="mt-3 space-y-3">
           <input
             type="url"
             placeholder="Base URL"
             value={form.ttsBaseUrl}
             onChange={(e) => setForm((f) => ({ ...f, ttsBaseUrl: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
           <input
             type="password"
             placeholder="API Key"
             value={form.ttsApiKey}
             onChange={(e) => setForm((f) => ({ ...f, ttsApiKey: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
-        <h3 className="mb-3 font-medium">视频生成</h3>
-        <div className="space-y-2">
+      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
+        <h3 className="font-medium text-[var(--foreground)]">视频生成</h3>
+        <div className="mt-3 space-y-3">
           <input
             type="url"
             placeholder="Base URL"
             value={form.videoBaseUrl}
             onChange={(e) => setForm((f) => ({ ...f, videoBaseUrl: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
           <input
             type="password"
             placeholder="API Key"
             value={form.videoApiKey}
             onChange={(e) => setForm((f) => ({ ...f, videoApiKey: e.target.value }))}
-            className="w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none"
+            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
           />
         </div>
       </section>
@@ -142,7 +142,7 @@ export function ApiConfigForm({
       <button
         type="submit"
         disabled={saving}
-        className="rounded-lg bg-amber-500 px-6 py-2.5 font-medium text-black hover:bg-amber-400 disabled:opacity-50"
+        className="rounded-xl bg-[var(--accent)] px-6 py-3 font-medium text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-smooth hover-lift animate-scale-in"
       >
         {saving ? "保存中…" : "保存"}
       </button>
