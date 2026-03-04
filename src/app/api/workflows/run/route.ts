@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { createRun, startRunFirstStep } from "@/lib/workflow/service";
 import { WORKFLOW_ID } from "@/lib/workflow/types";
 
+// 最大输入长度限制
+const MAX_NOVEL_TEXT_LENGTH = 100000; // 10万字符
+
 export async function POST(req: Request) {
   try {
     const session = await getCurrentSession();
@@ -14,6 +17,14 @@ export async function POST(req: Request) {
     if (!projectId || !novelText) {
       return NextResponse.json(
         { error: "请提供 projectId 和 novelText" },
+        { status: 400 }
+      );
+    }
+
+    // 验证输入长度
+    if (novelText.length > MAX_NOVEL_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `小说文本长度超过限制 (${MAX_NOVEL_TEXT_LENGTH} 字符)` },
         { status: 400 }
       );
     }
@@ -54,4 +65,12 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+// 不允许 GET 请求
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

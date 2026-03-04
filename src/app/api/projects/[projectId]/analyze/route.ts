@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db";
 import { getQueueByType, getQueueTypeByTaskType } from "@/lib/task/queues";
 import { TASK_TYPE, type TaskJobData } from "@/lib/task/types";
 
+// 最大输入长度限制
+const MAX_NOVEL_TEXT_LENGTH = 100000;
+
 /**
  * 提交剧本分析任务：将小说文本解析为角色、场景、集数。
  * 需在设置中配置 LLM API。
@@ -28,6 +31,14 @@ export async function POST(
     if (!novelText) {
       return NextResponse.json(
         { error: "请提供 novelText 或 text" },
+        { status: 400 }
+      );
+    }
+
+    // 验证输入长度
+    if (novelText.length > MAX_NOVEL_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `文本长度超过限制 (${MAX_NOVEL_TEXT_LENGTH} 字符)` },
         { status: 400 }
       );
     }
@@ -67,4 +78,11 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

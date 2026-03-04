@@ -30,7 +30,7 @@ export default async function WorkspacePage() {
 
         {projects.length === 0 ? (
           <div className="card-base glass-surface mt-8 p-12 text-center animate-slide-up animation-delay-100 relative overflow-hidden">
-            {/* 装饰性浮动光斑（waoowaoo 风格） */}
+            {/* 装饰性浮动光斑 */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute top-1/4 left-1/4 h-24 w-24 rounded-full bg-[var(--accent)]/10 animate-float" />
               <div className="absolute bottom-1/4 right-1/4 h-20 w-20 rounded-full bg-[var(--accent)]/8 animate-float-delayed" />

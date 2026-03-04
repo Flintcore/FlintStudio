@@ -1,6 +1,22 @@
 import { Worker } from "bullmq";
 import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
+import { env, validateEnv } from "@/lib/env";
+
+// 启动时验证环境变量
+try {
+  validateEnv();
+} catch (e) {
+  console.error("[Worker] 环境变量验证失败:", (e as Error).message);
+  process.exit(1);
+}
+
+// 验证 INTERNAL_TASK_TOKEN
+if (!env.INTERNAL_TASK_TOKEN || env.INTERNAL_TASK_TOKEN.includes("please-change")) {
+  console.error("[Worker] 错误: INTERNAL_TASK_TOKEN 未设置或为默认值");
+  console.error("[Worker] 请设置 INTERNAL_TASK_TOKEN 环境变量用于 Worker 内部通信");
+  process.exit(1);
+}
 
 // BullMQ 与项目 ioredis 类型不兼容，运行时兼容
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,9 +24,10 @@ const workerConnection = queueRedis as any;
 import type { TaskJobData } from "@/lib/task/types";
 import { prisma } from "@/lib/db";
 import { runAnalyzeNovel } from "@/lib/workflow/handlers/analyze-novel";
+import { runReviewAnalysis } from "@/lib/workflow/handlers/review-analysis";
 import { runStoryToScript } from "@/lib/workflow/handlers/story-to-script";
 import { runScriptToStoryboard } from "@/lib/workflow/handlers/script-to-storyboard";
-import { advanceRun, failRun } from "@/lib/workflow/service";
+import { advanceRun, failRun, updateStepInputSummary } from "@/lib/workflow/service";
 import { generateImage } from "@/lib/generators/image-client";
 import { generateSpeech } from "@/lib/generators/tts-client";
 import { runVoiceExtract } from "@/lib/workflow/handlers/voice-extract";
@@ -18,26 +35,36 @@ import { composeEpisodeVideo } from "@/lib/video/compose-episode";
 import path from "path";
 
 const concurrency = {
-  image: Number(process.env.QUEUE_CONCURRENCY_IMAGE) || 4,
-  video: Number(process.env.QUEUE_CONCURRENCY_VIDEO) || 2,
-  voice: Number(process.env.QUEUE_CONCURRENCY_VOICE) || 4,
-  text: Number(process.env.QUEUE_CONCURRENCY_TEXT) || 4,
+  image: env.QUEUE_CONCURRENCY_IMAGE,
+  video: env.QUEUE_CONCURRENCY_VIDEO,
+  voice: env.QUEUE_CONCURRENCY_VOICE,
+  text: env.QUEUE_CONCURRENCY_TEXT,
 };
 
-const INTERNAL_TASK_TOKEN = process.env.INTERNAL_TASK_TOKEN || "";
-const NEXT_PUBLIC_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+const NEXT_PUBLIC_APP_URL = env.NEXTAUTH_URL;
+
+// 任务超时配置（毫秒）
+const TASK_TIMEOUTS = {
+  text: 10 * 60 * 1000,    // 10 分钟
+  image: 5 * 60 * 1000,    // 5 分钟（单个图片）
+  voice: 10 * 60 * 1000,   // 10 分钟
+  video: 30 * 60 * 1000,   // 30 分钟
+};
 
 async function callAdvance(runId: string, taskId: string) {
-  if (!INTERNAL_TASK_TOKEN) return;
   try {
-    await fetch(`${NEXT_PUBLIC_APP_URL}/api/workflows/advance`, {
+    const res = await fetch(`${NEXT_PUBLIC_APP_URL}/api/workflows/advance`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${INTERNAL_TASK_TOKEN}`,
+        Authorization: `Bearer ${env.INTERNAL_TASK_TOKEN}`,
       },
       body: JSON.stringify({ runId, taskId }),
     });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`[Workers] advance call failed: ${res.status} ${err}`);
+    }
   } catch (e) {
     console.error("[Workers] advance call failed:", (e as Error).message);
   }
@@ -57,10 +84,21 @@ async function processTextJob(job: { data: TaskJobData }) {
       return;
     }
 
+    // 验证输入长度
+    if (novelText.length > 100000) {
+      await prisma.task.update({
+        where: { id: taskId },
+        data: { status: "failed", errorMessage: "小说文本超过最大长度限制 (100000 字符)" },
+      });
+      if (runId) await failRun(runId, "小说文本过长");
+      return;
+    }
+
     await prisma.task.update({
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { novelTextLength: novelText.length });
 
     try {
       const { episodeIds } = await runAnalyzeNovel({
@@ -69,12 +107,27 @@ async function processTextJob(job: { data: TaskJobData }) {
         novelPromotionId: targetId,
         novelText,
       });
+      const np = await prisma.novelPromotionProject.findUnique({
+        where: { id: targetId },
+        include: { characters: true, locations: true },
+      });
+      let review: { ok: boolean; issues: string[] } = { ok: true, issues: [] };
+      try {
+        review = await runReviewAnalysis({
+          userId,
+          episodeCount: episodeIds.length,
+          characterCount: np?.characters?.length ?? 0,
+          locationCount: np?.locations?.length ?? 0,
+        });
+      } catch (e) {
+        review = { ok: true, issues: [`复查 Agent 调用未返回: ${(e as Error).message}`] };
+      }
       await prisma.task.update({
         where: { id: taskId },
         data: {
           status: "completed",
           finishedAt: new Date(),
-          result: { episodeIds },
+          result: { episodeIds, review },
         },
       });
       if (runId) await callAdvance(runId, taskId);
@@ -96,6 +149,7 @@ async function processTextJob(job: { data: TaskJobData }) {
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const episode = await prisma.novelPromotionEpisode.findUnique({
         where: { id: episodeId },
@@ -149,6 +203,7 @@ async function processTextJob(job: { data: TaskJobData }) {
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const episode = await prisma.novelPromotionEpisode.findUnique({
         where: { id: episodeId },
@@ -201,6 +256,7 @@ async function processImageJob(job: { data: TaskJobData }) {
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const panels = await prisma.novelPromotionPanel.findMany({
         where: {
@@ -209,31 +265,50 @@ async function processImageJob(job: { data: TaskJobData }) {
         orderBy: [{ storyboardId: "asc" }, { panelIndex: "asc" }],
       });
       let done = 0;
+      let failed = 0;
+      const failedPanels: string[] = [];
+      
       for (const panel of panels) {
         const prompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
         try {
-          const { url } = await generateImage({
-            userId,
-            prompt: prompt.slice(0, 4000),
-            size: "1024x1024",
-          });
-          if (url) {
+          // 添加单个面板的超时控制
+          const timeoutMs = 60000; // 60 秒超时
+          const result = await Promise.race([
+            generateImage({
+              userId,
+              prompt: prompt.slice(0, 4000),
+              size: "1024x1024",
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("图像生成超时")), timeoutMs)
+            ),
+          ]);
+          if (result.url) {
             await prisma.novelPromotionPanel.update({
               where: { id: panel.id },
-              data: { imageUrl: url },
+              data: { imageUrl: result.url },
             });
+            done++;
           }
         } catch (e) {
+          failed++;
+          failedPanels.push(panel.id);
           console.error("[Worker:image] panel", panel.id, (e as Error).message);
         }
-        done++;
       }
+      
+      // 如果有失败的图片，记录警告
+      if (failed > 0) {
+        console.warn(`[Worker:image] 集 ${episodeId} 中 ${failed}/${panels.length} 个面板生成失败`);
+      }
+      
       await prisma.task.update({
         where: { id: taskId },
         data: {
-          status: "completed",
+          status: failed === panels.length && panels.length > 0 ? "failed" : "completed",
           finishedAt: new Date(),
-          result: { panelsProcessed: done },
+          result: { panelsProcessed: done, panelsFailed: failed, failedPanelIds: failedPanels },
+          ...(failed > 0 ? { errorMessage: `${failed} 个面板生成失败` } : {}),
         },
       });
       if (runId) await callAdvance(runId, taskId);
@@ -252,7 +327,7 @@ async function processImageJob(job: { data: TaskJobData }) {
   console.log("[Worker:image]", type, taskId);
 }
 
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
 
 async function processVoiceJob(job: { data: TaskJobData }) {
@@ -264,6 +339,7 @@ async function processVoiceJob(job: { data: TaskJobData }) {
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const episode = await prisma.novelPromotionEpisode.findUnique({
         where: { id: episodeId },
@@ -283,31 +359,45 @@ async function processVoiceJob(job: { data: TaskJobData }) {
         episodeId,
         clipsContent,
       });
+      
+      let successCount = 0;
+      let failCount = 0;
+      
       for (const lineId of lineIds) {
         const line = await prisma.novelPromotionVoiceLine.findUnique({
           where: { id: lineId },
         });
         if (!line?.content) continue;
         try {
-          const { audioUrl } = await generateSpeech({
-            userId,
-            text: line.content,
-            voiceLineId: line.id,
-          });
+          // 单个配音超时 30 秒
+          const timeoutMs = 30000;
+          const result = await Promise.race([
+            generateSpeech({
+              userId,
+              text: line.content,
+              voiceLineId: line.id,
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("TTS 超时")), timeoutMs)
+            ),
+          ]);
           await prisma.novelPromotionVoiceLine.update({
             where: { id: line.id },
-            data: { audioUrl },
+            data: { audioUrl: result.audioUrl },
           });
+          successCount++;
         } catch (e) {
+          failCount++;
           console.error("[Worker:voice] TTS failed for line", line.id, (e as Error).message);
         }
       }
+      
       await prisma.task.update({
         where: { id: taskId },
         data: {
           status: "completed",
           finishedAt: new Date(),
-          result: { lineIds },
+          result: { lineIds, successCount, failCount },
         },
       });
       if (runId) await callAdvance(runId, taskId);
@@ -335,6 +425,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
       where: { id: taskId },
       data: { status: "running", startedAt: new Date() },
     });
+    if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const episode = await prisma.novelPromotionEpisode.findUnique({
         where: { id: episodeId },
@@ -364,6 +455,15 @@ async function processVideoJob(job: { data: TaskJobData }) {
           }
         }
       }
+      
+      // 检查面板和配音数量不匹配问题
+      if (panelsOrdered.length < episode.voiceLines.length) {
+        console.warn(
+          `[Worker:video] 面板数量 (${panelsOrdered.length}) 少于配音行数 (${episode.voiceLines.length})，` +
+          `部分图片将被重复使用`
+        );
+      }
+      
       const segs = episode.voiceLines.map((vl: { id: string }, i: number) => {
         const audioPath = path.join(VOICE_DIR, `${vl.id}.mp3`);
         const panel = panelsOrdered[i % Math.max(1, panelsOrdered.length)];
@@ -376,8 +476,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
         episodeId,
         segments: segs,
       });
-      const base = process.env.NEXTAUTH_URL || "http://localhost:3000";
-      const videoUrl = `${base}/api/media/episode/${episodeId}/video`;
+      const videoUrl = `${NEXT_PUBLIC_APP_URL}/api/media/episode/${episodeId}/video`;
       await prisma.novelPromotionEpisode.update({
         where: { id: episodeId },
         data: { videoUrl },
@@ -406,27 +505,47 @@ async function processVideoJob(job: { data: TaskJobData }) {
   console.log("[Worker:video]", type, taskId);
 }
 
+// 包装处理器添加超时控制
+function withTimeout<T>(
+  processor: (job: { data: TaskJobData }) => Promise<T>,
+  timeoutMs: number,
+  jobType: string
+) {
+  return async (job: { data: TaskJobData; id?: string }): Promise<T> => {
+    const startTime = Date.now();
+    return Promise.race([
+      processor(job),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          const duration = Date.now() - startTime;
+          reject(new Error(`${jobType} 任务超时 (${duration}ms > ${timeoutMs}ms)`));
+        }, timeoutMs)
+      ),
+    ]);
+  };
+}
+
 const textWorker = new Worker<TaskJobData>(
   QUEUE_NAME.TEXT,
-  processTextJob,
+  withTimeout(processTextJob, TASK_TIMEOUTS.text, "Text"),
   { connection: workerConnection, concurrency: concurrency.text }
 );
 
 const imageWorker = new Worker<TaskJobData>(
   QUEUE_NAME.IMAGE,
-  processImageJob,
+  withTimeout(processImageJob, TASK_TIMEOUTS.image, "Image"),
   { connection: workerConnection, concurrency: concurrency.image }
 );
 
 const voiceWorker = new Worker<TaskJobData>(
   QUEUE_NAME.VOICE,
-  processVoiceJob,
+  withTimeout(processVoiceJob, TASK_TIMEOUTS.voice, "Voice"),
   { connection: workerConnection, concurrency: concurrency.voice }
 );
 
 const videoWorker = new Worker<TaskJobData>(
   QUEUE_NAME.VIDEO,
-  processVideoJob,
+  withTimeout(processVideoJob, TASK_TIMEOUTS.video, "Video"),
   { connection: workerConnection, concurrency: concurrency.video }
 );
 
@@ -438,9 +557,21 @@ workers.forEach((w) => {
 });
 
 async function shutdown() {
+  console.log("[Workers] 正在关闭...");
   await Promise.all(workers.map((w) => w.close()));
+  console.log("[Workers] 已关闭");
   process.exit(0);
 }
 
 process.on("SIGINT", () => void shutdown());
 process.on("SIGTERM", () => void shutdown());
+
+// 未捕获的异常处理
+process.on("uncaughtException", (err) => {
+  console.error("[Workers] 未捕获的异常:", err);
+  void shutdown();
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[Workers] 未处理的 Promise 拒绝:", promise, "原因:", reason);
+});

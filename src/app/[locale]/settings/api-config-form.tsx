@@ -1,6 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import type { CustomProvider, ApiType } from "@/lib/api-config";
+
+const API_TYPE_LABELS: Record<ApiType, string> = {
+  llm: "大语言模型",
+  image: "图像生成",
+  voice: "语音合成",
+  video: "视频生成",
+};
 
 type Initial = {
   llmBaseUrl: string;
@@ -11,10 +19,18 @@ type Initial = {
   ttsApiKey: string;
   videoBaseUrl: string;
   videoApiKey: string;
+  analysisModel?: string;
+  storyboardModel?: string;
+  videoModel?: string;
+  providers?: CustomProvider[];
+  defaults?: Partial<Record<ApiType, string>>;
 };
 
+const INPUT_CLASS =
+  "input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]";
+
 export function ApiConfigForm({
-  userId,
+  userId: _userId,
   initial,
 }: {
   userId: string;
@@ -23,6 +39,39 @@ export function ApiConfigForm({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [form, setForm] = useState(initial);
+  const [providers, setProviders] = useState<CustomProvider[]>(initial.providers ?? []);
+  const [defaults, setDefaults] = useState<Partial<Record<ApiType, string>>>(initial.defaults ?? {});
+
+  function addProvider(type: ApiType = "llm") {
+    setProviders((prev) => [
+      ...prev,
+      {
+        id: `p-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: "",
+        baseUrl: type === "llm" ? "https://openrouter.ai/api/v1" : "",
+        apiKey: "",
+        model: undefined,
+        type,
+      },
+    ]);
+  }
+
+  function updateProvider(id: string, patch: Partial<CustomProvider>) {
+    setProviders((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
+    );
+  }
+
+  function removeProvider(id: string) {
+    setProviders((prev) => prev.filter((p) => p.id !== id));
+    setDefaults((prev) => {
+      const next = { ...prev };
+      (["llm", "image", "voice", "video"] as const).forEach((t) => {
+        if (next[t] === id) delete next[t];
+      });
+      return next;
+    });
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +81,14 @@ export function ApiConfigForm({
       const res = await fetch("/api/settings/api-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          analysisModel: form.analysisModel || undefined,
+          storyboardModel: form.storyboardModel || undefined,
+          videoModel: form.videoModel || undefined,
+          providers,
+          defaults,
+        }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -44,6 +100,8 @@ export function ApiConfigForm({
       setSaving(false);
     }
   }
+
+  const providersByType = (t: ApiType) => providers.filter((p) => p.type === t);
 
   return (
     <form onSubmit={onSubmit} className="max-w-2xl space-y-6">
@@ -59,83 +117,135 @@ export function ApiConfigForm({
         </p>
       )}
 
+      {/* 多 API / 多模型 */}
       <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
-        <h3 className="font-medium text-[var(--foreground)]">大语言模型 (剧本分析)</h3>
-        <div className="mt-3 space-y-3">
-          <input
-            type="url"
-            placeholder="Base URL (如 https://openrouter.ai/api/v1)"
-            value={form.llmBaseUrl}
-            onChange={(e) => setForm((f) => ({ ...f, llmBaseUrl: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
-          <input
-            type="password"
-            placeholder="API Key"
-            value={form.llmApiKey}
-            onChange={(e) => setForm((f) => ({ ...f, llmApiKey: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
+        <h3 className="font-medium text-[var(--foreground)]">多 API / 多模型</h3>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          添加多个 API 提供商，并为每类能力选择默认使用的提供商；未选时使用下方「单配置」。
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(["llm", "image", "voice", "video"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => addProvider(t)}
+              className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--muted)]/20"
+            >
+              + {API_TYPE_LABELS[t]}
+            </button>
+          ))}
         </div>
+        {providers.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {providers.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-xl border border-[var(--border)] bg-[var(--muted)]/5 p-4 space-y-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <select
+                    value={p.type}
+                    onChange={(e) => updateProvider(p.id, { type: e.target.value as ApiType })}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm"
+                  >
+                    {(Object.keys(API_TYPE_LABELS) as ApiType[]).map((t) => (
+                      <option key={t} value={t}>{API_TYPE_LABELS[t]}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeProvider(p.id)}
+                    className="text-xs text-[var(--error)] hover:underline"
+                  >
+                    删除
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="名称（如 OpenRouter、自建）"
+                  value={p.name}
+                  onChange={(e) => updateProvider(p.id, { name: e.target.value })}
+                  className={INPUT_CLASS}
+                />
+                <input
+                  type="url"
+                  placeholder="Base URL"
+                  value={p.baseUrl}
+                  onChange={(e) => updateProvider(p.id, { baseUrl: e.target.value })}
+                  className={INPUT_CLASS}
+                />
+                <input
+                  type="password"
+                  placeholder="API Key"
+                  value={p.apiKey}
+                  onChange={(e) => updateProvider(p.id, { apiKey: e.target.value })}
+                  className={INPUT_CLASS}
+                />
+                <input
+                  type="text"
+                  placeholder="模型 (可选)"
+                  value={p.model ?? ""}
+                  onChange={(e) => updateProvider(p.id, { model: e.target.value || undefined })}
+                  className={INPUT_CLASS}
+                />
+              </div>
+            ))}
+            <div className="pt-2 border-t border-[var(--border)]">
+              <p className="text-xs font-medium text-[var(--muted)] mb-2">每类默认使用</p>
+              <div className="flex flex-wrap gap-4">
+                {(["llm", "image", "voice", "video"] as const).map((t) => (
+                  <label key={t} className="flex items-center gap-2 text-sm">
+                    <span className="text-[var(--muted)]">{API_TYPE_LABELS[t]}:</span>
+                    <select
+                      value={defaults[t] ?? ""}
+                      onChange={(e) =>
+                        setDefaults((d) => ({
+                          ...d,
+                          [t]: e.target.value || undefined,
+                        }))
+                      }
+                      className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1"
+                    >
+                      <option value="">使用下方单配置</option>
+                      {providersByType(t).map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name || p.id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
-        <h3 className="font-medium text-[var(--foreground)]">图像生成</h3>
+        <h3 className="font-medium text-[var(--foreground)]">单配置（备用）</h3>
+        <p className="mt-1 text-xs text-[var(--muted)]">当未选择多 API 默认提供商时使用；也可仅用此处配置。</p>
         <div className="mt-3 space-y-3">
-          <input
-            type="url"
-            placeholder="Base URL (OpenAI 兼容)"
-            value={form.imageBaseUrl}
-            onChange={(e) => setForm((f) => ({ ...f, imageBaseUrl: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
-          <input
-            type="password"
-            placeholder="API Key"
-            value={form.imageApiKey}
-            onChange={(e) => setForm((f) => ({ ...f, imageApiKey: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
+          <p className="text-sm text-[var(--muted)]">大语言模型 · OpenAI 兼容 /v1/chat/completions</p>
+          <input type="url" placeholder="Base URL" value={form.llmBaseUrl} onChange={(e) => setForm((f) => ({ ...f, llmBaseUrl: e.target.value }))} className={INPUT_CLASS} />
+          <input type="password" placeholder="API Key" value={form.llmApiKey} onChange={(e) => setForm((f) => ({ ...f, llmApiKey: e.target.value }))} className={INPUT_CLASS} />
+          <input type="text" placeholder="模型 (可选)" value={form.analysisModel ?? ""} onChange={(e) => setForm((f) => ({ ...f, analysisModel: e.target.value }))} className={INPUT_CLASS} />
         </div>
-      </section>
-
-      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
-        <h3 className="font-medium text-[var(--foreground)]">语音合成 (TTS)</h3>
-        <div className="mt-3 space-y-3">
-          <input
-            type="url"
-            placeholder="Base URL"
-            value={form.ttsBaseUrl}
-            onChange={(e) => setForm((f) => ({ ...f, ttsBaseUrl: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
-          <input
-            type="password"
-            placeholder="API Key"
-            value={form.ttsApiKey}
-            onChange={(e) => setForm((f) => ({ ...f, ttsApiKey: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-[var(--muted)]">图像生成 · /v1/images/generations</p>
+          <input type="url" placeholder="Base URL" value={form.imageBaseUrl} onChange={(e) => setForm((f) => ({ ...f, imageBaseUrl: e.target.value }))} className={INPUT_CLASS} />
+          <input type="password" placeholder="API Key" value={form.imageApiKey} onChange={(e) => setForm((f) => ({ ...f, imageApiKey: e.target.value }))} className={INPUT_CLASS} />
+          <input type="text" placeholder="模型 (可选)" value={form.storyboardModel ?? ""} onChange={(e) => setForm((f) => ({ ...f, storyboardModel: e.target.value }))} className={INPUT_CLASS} />
         </div>
-      </section>
-
-      <section className="card-base glass-surface rounded-2xl border border-[var(--border)] p-5">
-        <h3 className="font-medium text-[var(--foreground)]">视频生成</h3>
-        <div className="mt-3 space-y-3">
-          <input
-            type="url"
-            placeholder="Base URL"
-            value={form.videoBaseUrl}
-            onChange={(e) => setForm((f) => ({ ...f, videoBaseUrl: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
-          <input
-            type="password"
-            placeholder="API Key"
-            value={form.videoApiKey}
-            onChange={(e) => setForm((f) => ({ ...f, videoApiKey: e.target.value }))}
-            className="input-base w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] placeholder:text-[var(--muted-light)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)]"
-          />
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-[var(--muted)]">语音合成 · /v1/audio/speech</p>
+          <input type="url" placeholder="Base URL" value={form.ttsBaseUrl} onChange={(e) => setForm((f) => ({ ...f, ttsBaseUrl: e.target.value }))} className={INPUT_CLASS} />
+          <input type="password" placeholder="API Key" value={form.ttsApiKey} onChange={(e) => setForm((f) => ({ ...f, ttsApiKey: e.target.value }))} className={INPUT_CLASS} />
+        </div>
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-[var(--muted)]">视频生成（可选，本版多用 FFmpeg 合成）</p>
+          <input type="url" placeholder="Base URL" value={form.videoBaseUrl} onChange={(e) => setForm((f) => ({ ...f, videoBaseUrl: e.target.value }))} className={INPUT_CLASS} />
+          <input type="password" placeholder="API Key" value={form.videoApiKey} onChange={(e) => setForm((f) => ({ ...f, videoApiKey: e.target.value }))} className={INPUT_CLASS} />
+          <input type="text" placeholder="模型 (可选)" value={form.videoModel ?? ""} onChange={(e) => setForm((f) => ({ ...f, videoModel: e.target.value }))} className={INPUT_CLASS} />
         </div>
       </section>
 

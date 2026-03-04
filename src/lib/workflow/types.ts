@@ -21,14 +21,32 @@ export const WORKFLOW_ID = {
   NOVEL_TO_VIDEO: "novel-to-video",
 } as const;
 
-/** 阶段顺序：novel-to-video 的 DAG 阶段 */
+/** 阶段顺序：novel-to-video 的 DAG 阶段（含 review_failed 暂停态） */
 export const PHASES = [
-  "analyze_novel",     // 1. 剧本分析 → 角色、场景、集数
-  "story_to_script",  // 2. 每集：小说 → 分场/镜头
-  "script_to_storyboard", // 3. 每场：生成分镜
-  "image_panels",     // 4. 每镜头：出图
-  "voice",            // 5. 配音
-  "video",            // 6. 合成成片
+  "analyze_novel",
+  "review_failed",   // 复查未通过，等待用户「继续执行」
+  "story_to_script",
+  "script_to_storyboard",
+  "image_panels",
+  "voice",
+  "video",
 ] as const;
 
 export type Phase = (typeof PHASES)[number];
+
+/** 步骤 key 与显式 Agent 名称（多 Agent 可观测） */
+export const AGENT_BY_STEP_KEY: Record<string, string> = {
+  analyze_novel: "剧本分析Agent",
+  story_to_script: "分场Agent",
+  script_to_storyboard: "分镜Agent",
+  image_panels: "出图Agent",
+  voice: "配音Agent",
+  video: "视频合成Agent",
+};
+
+export function getAgentNameForStepKey(stepKey: string): string {
+  for (const [prefix, name] of Object.entries(AGENT_BY_STEP_KEY)) {
+    if (stepKey === prefix || stepKey.startsWith(prefix + "_")) return name;
+  }
+  return "Agent";
+}

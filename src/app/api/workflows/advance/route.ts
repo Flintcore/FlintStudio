@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { advanceRun } from "@/lib/workflow/service";
+import { env } from "@/lib/env";
 
-const INTERNAL_TOKEN = process.env.INTERNAL_TASK_TOKEN || "";
+const INTERNAL_TOKEN = env.INTERNAL_TASK_TOKEN;
 
 /** Worker 在任务完成后调用，推进工作流到下一阶段 */
 export async function POST(req: NextRequest) {
@@ -20,4 +21,11 @@ export async function POST(req: NextRequest) {
 
   await advanceRun(runId, taskId);
   return NextResponse.json({ ok: true });
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

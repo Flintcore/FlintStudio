@@ -28,9 +28,18 @@ export async function GET(
       status: s.status,
       startedAt: s.startedAt,
       finishedAt: s.finishedAt,
+      result: s.result ?? undefined,
+      payload: s.payload ?? undefined,
     })),
     queuedAt: run.queuedAt,
     startedAt: run.startedAt,
     finishedAt: run.finishedAt,
   });
+}
+
+export async function POST() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

@@ -39,16 +39,16 @@ FlintStudio is an **open-source, self-hosted** AI film automation platform. Past
 ## 🖼️ 预览 · Preview
 
 **中文**  
-下方为产品界面与成片效果预览（可将截图或演示图放入仓库 `docs/` 目录后替换链接）。
+下方为产品界面与成片效果预览。
 
 **English**  
-Preview of the UI and generated video. Replace the links below with your own screenshots in the `docs/` folder.
+Preview of the UI and generated video.
 
 <p align="center">
-  <img src="docs/preview.png" alt="FlintStudio 界面预览" width="800" />
+  <img src="docs/preview2.png" alt="FlintStudio 界面预览" width="800" />
 </p>
 
-*（请将实际截图保存为 `docs/preview.png`，或修改上方的 `docs/preview.png` 为你的图片路径 / Please add your screenshot as `docs/preview.png` or change the path above.)*
+*预览图：`docs/preview2.png` / Preview: `docs/preview2.png`*
 
 ---
 
@@ -298,11 +298,7 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 
 ## 🙏 致谢 · Acknowledgments
 
-**中文**  
-致谢 [waoowaoo](https://github.com/waoowaooAI/waoowaoo) 的技术栈与产品思路参考。
 
-**English**  
-Thanks to [waoowaoo](https://github.com/waoowaooAI/waoowaoo) for tech stack and product inspiration.
 
 ---
 

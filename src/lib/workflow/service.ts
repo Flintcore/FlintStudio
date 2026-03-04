@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { RUN_STATUS, type RunStatus } from "./types";
+import { getAgentNameForStepKey } from "./types";
 import { getQueueByType, getQueueTypeByTaskType } from "@/lib/task/queues";
-import { TASK_TYPE } from "@/lib/task/types";
+import { TASK_TYPE, type TaskType } from "@/lib/task/types";
 
 export type CreateRunInput = {
   userId: string;
@@ -28,6 +30,7 @@ export async function createRun(input: CreateRunInput) {
       stepTitle: "剧本分析",
       status: "pending",
       stepIndex: 0,
+      payload: { agent: getAgentNameForStepKey("analyze_novel") } as object,
     },
   });
   return { run };
@@ -55,7 +58,7 @@ export async function startRunFirstStep(runId: string, input: Record<string, unk
       targetType: "NovelPromotionProject",
       targetId: np.id,
       status: "queued",
-      payload: { novelText: novelText.slice(0, 50000) },
+      payload: { novelText: novelText.slice(0, 50000) } as object,
     },
   });
 
@@ -98,11 +101,32 @@ export async function getRunById(runId: string) {
   });
 }
 
+/** 由 Worker 在任务开始时写入当步输入摘要，便于可观测与审计 */
+export async function updateStepInputSummary(
+  runId: string,
+  taskId: string,
+  inputSummary: Record<string, unknown>
+) {
+  const step = await prisma.graphStep.findFirst({
+    where: { runId, taskId },
+  });
+  if (!step) return;
+  const payload = (step.payload ?? {}) as Record<string, unknown>;
+  await prisma.graphStep.update({
+    where: { id: step.id },
+    data: {
+      payload: { ...payload, inputSummary } as object,
+    },
+  });
+}
+
 export async function listRuns(opts: {
   userId: string;
   projectId?: string;
   workflowId?: string;
   status?: RunStatus;
+  queuedSince?: Date;
+  queuedUntil?: Date;
   limit?: number;
 }) {
   return prisma.graphRun.findMany({
@@ -111,11 +135,83 @@ export async function listRuns(opts: {
       ...(opts.projectId && { projectId: opts.projectId }),
       ...(opts.workflowId && { workflowId: opts.workflowId }),
       ...(opts.status && { status: opts.status }),
+      ...((opts.queuedSince ?? opts.queuedUntil) && {
+        queuedAt: {
+          ...(opts.queuedSince && { gte: opts.queuedSince }),
+          ...(opts.queuedUntil && { lte: opts.queuedUntil }),
+        },
+      }),
     },
     orderBy: { queuedAt: "desc" },
     take: Math.min(opts.limit ?? 20, 100),
     include: { steps: { orderBy: { stepIndex: "asc" } } },
   });
+}
+
+/** 创建步骤和任务的通用函数 */
+async function createStepAndTask(
+  runId: string,
+  run: { id: string; userId: string; projectId: string },
+  stepKey: string,
+  stepTitle: string,
+  stepIndex: number,
+  taskType: string,
+  targetType: string,
+  targetId: string,
+  episodeId?: string,
+  payload?: Record<string, unknown>
+) {
+  const step = await prisma.graphStep.create({
+    data: {
+      runId,
+      stepKey,
+      stepTitle,
+      status: "pending",
+      stepIndex,
+      payload: { agent: getAgentNameForStepKey(stepKey), ...(payload ?? {}) } as object,
+    },
+  });
+
+  const task = await prisma.task.create({
+    data: {
+      userId: run.userId,
+      projectId: run.projectId,
+      episodeId,
+      runId,
+      type: taskType,
+      targetType,
+      targetId,
+      status: "queued",
+      payload: payload as object,
+    },
+  });
+
+  await prisma.graphStep.update({
+    where: { id: step.id },
+    data: { taskId: task.id, status: "running", startedAt: new Date() },
+  });
+
+  return { step, task };
+}
+
+/** 将任务加入队列 */
+async function enqueueTask(
+  taskType: TaskType,
+  jobName: string,
+  data: {
+    taskId: string;
+    type: TaskType;
+    userId: string;
+    projectId: string;
+    runId: string;
+    targetType: string;
+    targetId: string;
+    episodeId?: string;
+    payload?: Record<string, unknown>;
+  }
+) {
+  const queue = getQueueByType(getQueueTypeByTaskType(taskType));
+  await queue.add(jobName, data, { jobId: data.taskId });
 }
 
 /** 标记某步完成并推进工作流（由 Worker 在任务完成后调用） */
@@ -126,9 +222,17 @@ export async function advanceRun(runId: string, taskId: string) {
   const step = run.steps.find((s) => s.taskId === taskId);
   if (!step || step.status !== "running") return;
 
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { result: true },
+  });
   await prisma.graphStep.update({
     where: { id: step.id },
-    data: { status: "completed", finishedAt: new Date() },
+    data: {
+      status: "completed",
+      finishedAt: new Date(),
+      ...(task?.result != null ? { result: task.result as object } : {}),
+    },
   });
 
   const runFresh = await getRunById(runId);
@@ -140,68 +244,24 @@ export async function advanceRun(runId: string, taskId: string) {
       where: { id: taskId },
       select: { result: true },
     });
-    const result = (task?.result ?? {}) as { episodeIds?: string[] };
+    const result = (task?.result ?? {}) as {
+      episodeIds?: string[];
+      review?: { ok?: boolean; issues?: string[] };
+    };
     const episodeIds = result.episodeIds ?? [];
+    const review = result.review;
 
     if (episodeIds.length === 0) {
       await finishRun(runId, RUN_STATUS.COMPLETED, { message: "无集数可处理" });
       return;
     }
 
-    for (let i = 0; i < episodeIds.length; i++) {
-      const episodeId = episodeIds[i];
-      await prisma.graphStep.create({
-        data: {
-          runId,
-          stepKey: `story_to_script_${i}`,
-          stepTitle: `分场·第${i + 1}集`,
-          status: "pending",
-          stepIndex: 1 + i,
-        },
-      });
-      const t = await prisma.task.create({
-        data: {
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId,
-          runId,
-          type: TASK_TYPE.STORY_TO_SCRIPT,
-          targetType: "NovelPromotionEpisode",
-          targetId: episodeId,
-          status: "queued",
-          payload: { episodeId },
-        },
-      });
-      const stepRow = await prisma.graphStep.findFirst({
-        where: { runId, stepKey: `story_to_script_${i}` },
-      });
-      if (stepRow) {
-        await prisma.graphStep.update({
-          where: { id: stepRow.id },
-          data: { taskId: t.id, status: "running", startedAt: new Date() },
-        });
-      }
-      const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.STORY_TO_SCRIPT));
-      await queue.add(
-        "story-to-script",
-        {
-          taskId: t.id,
-          type: TASK_TYPE.STORY_TO_SCRIPT,
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId,
-          runId,
-          targetType: "NovelPromotionEpisode",
-          targetId: episodeId,
-          payload: { episodeId },
-        },
-        { jobId: t.id }
-      );
+    if (review && review.ok === false && Array.isArray(review.issues) && review.issues.length > 0) {
+      await pauseRunForReview(runId, review.issues);
+      return;
     }
-    await prisma.graphRun.update({
-      where: { id: runId },
-      data: { currentPhase: "story_to_script" },
-    });
+
+    await createStoryToScriptSteps(runId, run, episodeIds);
     return;
   }
 
@@ -246,53 +306,29 @@ export async function advanceRun(runId: string, taskId: string) {
     for (let i = 0; i < episodesWithClips.length; i++) {
       const ep = episodesWithClips[i];
       const stepKey = `script_to_storyboard_${i}`;
-      await prisma.graphStep.create({
-        data: {
-          runId,
-          stepKey,
-          stepTitle: `分镜·第${ep.episodeNumber}集`,
-          status: "pending",
-          stepIndex: 10 + i,
-        },
-      });
-      const t = await prisma.task.create({
-        data: {
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          type: TASK_TYPE.SCRIPT_TO_STORYBOARD,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          status: "queued",
-          payload: { episodeId: ep.id },
-        },
-      });
-      const stepRow = await prisma.graphStep.findFirst({
-        where: { runId, stepKey },
-      });
-      if (stepRow) {
-        await prisma.graphStep.update({
-          where: { id: stepRow.id },
-          data: { taskId: t.id, status: "running", startedAt: new Date() },
-        });
-      }
-      const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.SCRIPT_TO_STORYBOARD));
-      await queue.add(
-        "script-to-storyboard",
-        {
-          taskId: t.id,
-          type: TASK_TYPE.SCRIPT_TO_STORYBOARD,
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          payload: { episodeId: ep.id },
-        },
-        { jobId: t.id }
+      const { task } = await createStepAndTask(
+        runId,
+        run,
+        stepKey,
+        `分镜·第${ep.episodeNumber}集`,
+        10 + i,
+        TASK_TYPE.SCRIPT_TO_STORYBOARD,
+        "NovelPromotionEpisode",
+        ep.id,
+        ep.id,
+        { episodeId: ep.id }
       );
+      await enqueueTask(TASK_TYPE.SCRIPT_TO_STORYBOARD, "script-to-storyboard", {
+        taskId: task.id,
+        type: TASK_TYPE.SCRIPT_TO_STORYBOARD,
+        userId: run.userId,
+        projectId: run.projectId,
+        episodeId: ep.id,
+        runId,
+        targetType: "NovelPromotionEpisode",
+        targetId: ep.id,
+        payload: { episodeId: ep.id },
+      });
     }
     return;
   }
@@ -340,53 +376,29 @@ export async function advanceRun(runId: string, taskId: string) {
     for (let i = 0; i < episodesWithPanels.length; i++) {
       const ep = episodesWithPanels[i];
       const stepKey = `image_panels_${i}`;
-      await prisma.graphStep.create({
-        data: {
-          runId,
-          stepKey,
-          stepTitle: `出图·第${ep.episodeNumber}集`,
-          status: "pending",
-          stepIndex: 20 + i,
-        },
-      });
-      const t = await prisma.task.create({
-        data: {
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          type: TASK_TYPE.IMAGE_PANEL,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          status: "queued",
-          payload: { episodeId: ep.id },
-        },
-      });
-      const stepRow = await prisma.graphStep.findFirst({
-        where: { runId, stepKey },
-      });
-      if (stepRow) {
-        await prisma.graphStep.update({
-          where: { id: stepRow.id },
-          data: { taskId: t.id, status: "running", startedAt: new Date() },
-        });
-      }
-      const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.IMAGE_PANEL));
-      await queue.add(
-        "image-panel",
-        {
-          taskId: t.id,
-          type: TASK_TYPE.IMAGE_PANEL,
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          payload: { episodeId: ep.id },
-        },
-        { jobId: t.id }
+      const { task } = await createStepAndTask(
+        runId,
+        run,
+        stepKey,
+        `出图·第${ep.episodeNumber}集`,
+        20 + i,
+        TASK_TYPE.IMAGE_PANEL,
+        "NovelPromotionEpisode",
+        ep.id,
+        ep.id,
+        { episodeId: ep.id }
       );
+      await enqueueTask(TASK_TYPE.IMAGE_PANEL, "image-panel", {
+        taskId: task.id,
+        type: TASK_TYPE.IMAGE_PANEL,
+        userId: run.userId,
+        projectId: run.projectId,
+        episodeId: ep.id,
+        runId,
+        targetType: "NovelPromotionEpisode",
+        targetId: ep.id,
+        payload: { episodeId: ep.id },
+      });
     }
     return;
   }
@@ -434,53 +446,29 @@ export async function advanceRun(runId: string, taskId: string) {
     for (let i = 0; i < episodesWithContent.length; i++) {
       const ep = episodesWithContent[i];
       const stepKey = `voice_${i}`;
-      await prisma.graphStep.create({
-        data: {
-          runId,
-          stepKey,
-          stepTitle: `配音·第${ep.episodeNumber}集`,
-          status: "pending",
-          stepIndex: 30 + i,
-        },
-      });
-      const t = await prisma.task.create({
-        data: {
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          type: TASK_TYPE.VOICE_LINE,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          status: "queued",
-          payload: { episodeId: ep.id },
-        },
-      });
-      const stepRow = await prisma.graphStep.findFirst({
-        where: { runId, stepKey },
-      });
-      if (stepRow) {
-        await prisma.graphStep.update({
-          where: { id: stepRow.id },
-          data: { taskId: t.id, status: "running", startedAt: new Date() },
-        });
-      }
-      const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.VOICE_LINE));
-      await queue.add(
-        "voice-line",
-        {
-          taskId: t.id,
-          type: TASK_TYPE.VOICE_LINE,
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          payload: { episodeId: ep.id },
-        },
-        { jobId: t.id }
+      const { task } = await createStepAndTask(
+        runId,
+        run,
+        stepKey,
+        `配音·第${ep.episodeNumber}集`,
+        30 + i,
+        TASK_TYPE.VOICE_LINE,
+        "NovelPromotionEpisode",
+        ep.id,
+        ep.id,
+        { episodeId: ep.id }
       );
+      await enqueueTask(TASK_TYPE.VOICE_LINE, "voice-line", {
+        taskId: task.id,
+        type: TASK_TYPE.VOICE_LINE,
+        userId: run.userId,
+        projectId: run.projectId,
+        episodeId: ep.id,
+        runId,
+        targetType: "NovelPromotionEpisode",
+        targetId: ep.id,
+        payload: { episodeId: ep.id },
+      });
     }
     return;
   }
@@ -526,53 +514,29 @@ export async function advanceRun(runId: string, taskId: string) {
     for (let i = 0; i < episodesWithVoice.length; i++) {
       const ep = episodesWithVoice[i];
       const stepKey = `video_${i}`;
-      await prisma.graphStep.create({
-        data: {
-          runId,
-          stepKey,
-          stepTitle: `视频合成·第${ep.episodeNumber}集`,
-          status: "pending",
-          stepIndex: 40 + i,
-        },
-      });
-      const t = await prisma.task.create({
-        data: {
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          type: TASK_TYPE.VIDEO_PANEL,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          status: "queued",
-          payload: { episodeId: ep.id },
-        },
-      });
-      const stepRow = await prisma.graphStep.findFirst({
-        where: { runId, stepKey },
-      });
-      if (stepRow) {
-        await prisma.graphStep.update({
-          where: { id: stepRow.id },
-          data: { taskId: t.id, status: "running", startedAt: new Date() },
-        });
-      }
-      const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.VIDEO_PANEL));
-      await queue.add(
-        "video-episode",
-        {
-          taskId: t.id,
-          type: TASK_TYPE.VIDEO_PANEL,
-          userId: run.userId,
-          projectId: run.projectId,
-          episodeId: ep.id,
-          runId,
-          targetType: "NovelPromotionEpisode",
-          targetId: ep.id,
-          payload: { episodeId: ep.id },
-        },
-        { jobId: t.id }
+      const { task } = await createStepAndTask(
+        runId,
+        run,
+        stepKey,
+        `视频合成·第${ep.episodeNumber}集`,
+        40 + i,
+        TASK_TYPE.VIDEO_PANEL,
+        "NovelPromotionEpisode",
+        ep.id,
+        ep.id,
+        { episodeId: ep.id }
       );
+      await enqueueTask(TASK_TYPE.VIDEO_PANEL, "video-episode", {
+        taskId: task.id,
+        type: TASK_TYPE.VIDEO_PANEL,
+        userId: run.userId,
+        projectId: run.projectId,
+        episodeId: ep.id,
+        runId,
+        targetType: "NovelPromotionEpisode",
+        targetId: ep.id,
+        payload: { episodeId: ep.id },
+      });
     }
     return;
   }
@@ -614,5 +578,149 @@ export async function failRun(runId: string, errorMessage: string) {
       errorMessage,
       finishedAt: new Date(),
     },
+  });
+}
+
+/** 复查未通过时暂停，等待用户「继续执行」 */
+async function pauseRunForReview(runId: string, issues: string[]) {
+  await prisma.graphRun.update({
+    where: { id: runId },
+    data: {
+      currentPhase: "review_failed",
+      output: {
+        message: "复查未通过，请检查后点击「继续执行」或重跑工作流",
+        issues,
+      } as object,
+    },
+  });
+}
+
+/** 从「复查未通过」状态继续，创建分场步骤并推进 */
+export async function continueRunAfterReview(runId: string): Promise<boolean> {
+  const run = await getRunById(runId);
+  if (!run || run.currentPhase !== "review_failed") return false;
+
+  const analyzeStep = run.steps.find((s) => s.stepKey === "analyze_novel");
+  const result = (analyzeStep?.result ?? {}) as { episodeIds?: string[] };
+  const episodeIds = result.episodeIds ?? [];
+  if (episodeIds.length === 0) return false;
+
+  await prisma.graphRun.update({
+    where: { id: runId },
+    data: { currentPhase: "story_to_script", output: Prisma.JsonNull },
+  });
+
+  await createStoryToScriptSteps(runId, run, episodeIds);
+  return true;
+}
+
+/** 复查未通过时「重试剧本分析」：重新入队 analyze_novel，使用 run.input 中的 novelText */
+export async function retryAnalyzeNovel(runId: string): Promise<boolean> {
+  const run = await getRunById(runId);
+  if (!run || run.currentPhase !== "review_failed") return false;
+
+  const novelText = String((run.input as { novelText?: string })?.novelText ?? "").trim();
+  if (!novelText) return false;
+
+  const np = await prisma.novelPromotionProject.findFirst({
+    where: { projectId: run.projectId },
+  });
+  if (!np) return false;
+
+  const step = run.steps.find((s) => s.stepKey === "analyze_novel");
+  if (!step) return false;
+
+  await prisma.graphStep.update({
+    where: { id: step.id },
+    data: {
+      status: "pending",
+      taskId: null,
+      result: Prisma.JsonNull,
+      startedAt: null,
+      finishedAt: null,
+    },
+  });
+
+  const task = await prisma.task.create({
+    data: {
+      userId: run.userId,
+      projectId: run.projectId,
+      runId,
+      type: TASK_TYPE.ANALYZE_NOVEL,
+      targetType: "NovelPromotionProject",
+      targetId: np.id,
+      status: "queued",
+      payload: { novelText: novelText.slice(0, 50000) } as object,
+    },
+  });
+
+  await prisma.graphStep.update({
+    where: { id: step.id },
+    data: { taskId: task.id, status: "running", startedAt: new Date() },
+  });
+
+  await prisma.graphRun.update({
+    where: { id: runId },
+    data: {
+      status: RUN_STATUS.RUNNING,
+      currentPhase: "analyze_novel",
+      output: Prisma.JsonNull,
+    },
+  });
+
+  const queue = getQueueByType(getQueueTypeByTaskType(TASK_TYPE.ANALYZE_NOVEL));
+  await queue.add(
+    "analyze-novel",
+    {
+      taskId: task.id,
+      type: TASK_TYPE.ANALYZE_NOVEL,
+      userId: run.userId,
+      projectId: run.projectId,
+      runId,
+      targetType: "NovelPromotionProject",
+      targetId: np.id,
+      payload: { novelText: novelText.slice(0, 50000) },
+    },
+    { jobId: task.id }
+  );
+
+  return true;
+}
+
+/** 根据剧本分析结果创建分场步骤并入队 */
+async function createStoryToScriptSteps(
+  runId: string,
+  run: { id: string; userId: string; projectId: string },
+  episodeIds: string[]
+) {
+  for (let i = 0; i < episodeIds.length; i++) {
+    const episodeId = episodeIds[i];
+    const { task } = await createStepAndTask(
+      runId,
+      run,
+      `story_to_script_${i}`,
+      `分场·第${i + 1}集`,
+      1 + i,
+      TASK_TYPE.STORY_TO_SCRIPT,
+      "NovelPromotionEpisode",
+      episodeId,
+      episodeId,
+      { episodeId }
+    );
+    await enqueueTask(TASK_TYPE.STORY_TO_SCRIPT, "story-to-script", {
+      taskId: task.id,
+      type: TASK_TYPE.STORY_TO_SCRIPT,
+      userId: run.userId,
+      projectId: run.projectId,
+      episodeId,
+      runId,
+      targetType: "NovelPromotionEpisode",
+      targetId: episodeId,
+      payload: { episodeId },
+    });
+  }
+  await prisma.graphRun.update({
+    where: { id: runId },
+    data: { currentPhase: "story_to_script" },
   });
 }

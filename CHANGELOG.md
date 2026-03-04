@@ -8,10 +8,14 @@ This file documents notable changes to FlintStudio.
 ## [Unreleased]
 
 ### 中文
+- **API 对接**：统一 OpenAI 兼容路径（`/v1/chat/completions`、`/v1/images/generations`、`/v1/audio/speech`），Base URL 自动补 `/v1`；设置中支持为 LLM/图像/视频配置可选模型名，便于多模型、多端点对接。
+- **多 Agent 与复查**：剧本分析完成后自动执行「复查 Agent」对集数/角色/场景做质检，结果写入步骤；运行详情展示每步简要结果（集数、复查通过/问题），避免黑盒。
 - 初始开源版本：小说 → 剧本分析 → 分场 → 分镜 → 出图 → 配音 → 视频合成，全流程可配置 API。
 
 ### English
-- Initial open-source release: novel → script analysis → scene split → storyboard → panel images → voiceover → video composition; all APIs configurable.
+- **API**: OpenAI-compatible paths with auto `/v1`; optional model names per type (LLM/image/video) in settings for multi-model and multi-endpoint support.
+- **Multi-agent & review**: After script analysis, a review agent validates episodes/characters/locations; step results are stored and shown in run details (no black box).
+- Initial release: novel → analysis → scene split → storyboard → images → voice → video; all APIs configurable.
 
 ---
 

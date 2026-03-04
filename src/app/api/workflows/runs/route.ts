@@ -6,11 +6,17 @@ export async function GET(req: Request) {
   const session = await getCurrentSession();
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId") ?? undefined;
+  const status = searchParams.get("status") ?? undefined;
+  const queuedSince = searchParams.get("queuedSince") ?? undefined;
+  const queuedUntil = searchParams.get("queuedUntil") ?? undefined;
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 100);
 
   const runs = await listRuns({
     userId: session.user.id,
     projectId,
+    ...(status && { status: status as "queued" | "running" | "completed" | "failed" | "canceled" }),
+    ...(queuedSince && { queuedSince: new Date(queuedSince) }),
+    ...(queuedUntil && { queuedUntil: new Date(queuedUntil) }),
     limit,
   });
 
@@ -27,4 +33,11 @@ export async function GET(req: Request) {
       stepsCount: r.steps.length,
     })),
   });
+}
+
+export async function POST() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

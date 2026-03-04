@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 浅色系配色（兼容 waoowaoo 风格玻璃态与动效） */
+/* 浅色系配色与玻璃态动效 */
 :root {
   --background: #fafaf9;
   --foreground: #1c1917;
@@ -70,7 +70,7 @@ textarea:focus-visible {
   background: var(--muted);
 }
 
-/* ========== 可复用组件类（参考 waoowaoo 玻璃态） ========== */
+/* ========== 可复用组件类（玻璃态） ========== */
 .card-base {
   background: var(--card);
   border-radius: var(--radius-lg);
@@ -94,7 +94,7 @@ textarea:focus-visible {
   transition: box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* 玻璃表面（waoowaoo glass-surface） */
+/* 玻璃表面 */
 .glass-surface {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
@@ -107,7 +107,7 @@ textarea:focus-visible {
   box-shadow: var(--shadow-md);
 }
 
-/* 自下而上滑入（waoowaoo Toast / 弹层） */
+/* 自下而上滑入（Toast / 弹层） */
 @keyframes slide-up-from-bottom {
   from {
     transform: translateY(100%);
@@ -171,7 +171,7 @@ textarea:focus-visible {
 .animation-delay-250 { animation-delay: 250ms; }
 .animation-delay-300 { animation-delay: 300ms; }
 
-/* ========== 液体/浮动装饰动画（waoowaoo 同款） ========== */
+/* ========== 液体/浮动装饰动画 ========== */
 @keyframes float {
   0%, 100% {
     transform: translateY(0) translateX(0) scale(1);
@@ -237,7 +237,7 @@ textarea:focus-visible {
   animation-delay: -6s;
 }
 
-/* 进度条动画（waoowaoo ProgressToast 风格） */
+/* 进度条动画 */
 @keyframes progress {
   0% { width: 0%; }
   100% { width: 100%; }

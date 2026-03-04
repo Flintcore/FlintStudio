@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 
 export type ApiType = "llm" | "image" | "voice" | "video";
 
@@ -10,6 +9,73 @@ export interface ApiConfig {
   model?: string | null;
 }
 
+/** 多 API 下的单个提供商（与 waoowaoo 风格一致） */
+export interface CustomProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  /** 可选模型，如 gpt-4o-mini、dall-e-3 */
+  model?: string | null;
+  type: ApiType;
+}
+
+/** customProviders 存库结构 */
+export interface CustomProvidersPayload {
+  providers: CustomProvider[];
+  /** 每类默认使用的 provider id */
+  defaults?: Partial<Record<ApiType, string>>;
+}
+
+function trim(s: unknown): string {
+  return typeof s === "string" ? s.trim() : "";
+}
+
+function parseCustomProvidersPayload(raw: string | null | undefined): CustomProvidersPayload {
+  if (!raw) return { providers: [], defaults: {} };
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return { providers: [], defaults: {} };
+    const obj = parsed as Record<string, unknown>;
+    const providersRaw = Array.isArray(obj.providers) ? obj.providers : [];
+    const providers: CustomProvider[] = [];
+    const seenIds = new Set<string>();
+    for (let i = 0; i < providersRaw.length; i++) {
+      const p = providersRaw[i];
+      if (!p || typeof p !== "object") continue;
+      const o = p as Record<string, unknown>;
+      const id = trim(o.id) || `p-${i}-${Date.now()}`;
+      const name = trim(o.name) || id;
+      const baseUrl = trim(o.baseUrl);
+      const apiKey = trim(o.apiKey);
+      const type = o.type as string;
+      if (!["llm", "image", "voice", "video"].includes(type)) continue;
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      providers.push({
+        id,
+        name,
+        baseUrl,
+        apiKey,
+        model: trim(o.model) || undefined,
+        type: type as ApiType,
+      });
+    }
+    const defaults = (obj.defaults && typeof obj.defaults === "object" ? obj.defaults : {}) as Partial<Record<ApiType, string>>;
+    return { providers, defaults: defaults || {} };
+  } catch {
+    return { providers: [], defaults: {} };
+  }
+}
+
+export async function getCustomProvidersPayload(userId: string): Promise<CustomProvidersPayload> {
+  const prefs = await prisma.userPreference.findUnique({
+    where: { userId },
+    select: { customProviders: true },
+  });
+  return parseCustomProvidersPayload(prefs?.customProviders ?? undefined);
+}
+
 export async function getUserApiConfig(
   userId: string,
   type: ApiType
@@ -18,6 +84,20 @@ export async function getUserApiConfig(
     where: { userId },
   });
   if (!prefs) return null;
+
+  const { providers, defaults } = parseCustomProvidersPayload(prefs.customProviders ?? undefined);
+  const defaultId = defaults?.[type];
+  if (defaultId && providers.length > 0) {
+    const provider = providers.find((p) => p.id === defaultId);
+    if (provider && provider.type === type && provider.baseUrl && provider.apiKey) {
+      return {
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: provider.model ?? undefined,
+      };
+    }
+  }
+
   switch (type) {
     case "llm":
       return prefs.llmBaseUrl && prefs.llmApiKey
@@ -71,20 +151,41 @@ export async function setUserApiConfig(
   });
 }
 
+/** 保存多 API 配置（providers 列表 + 每类默认选中） */
+export async function saveCustomProvidersPayload(
+  userId: string,
+  payload: CustomProvidersPayload
+) {
+  const raw =
+    payload.providers.length > 0 || (payload.defaults && Object.keys(payload.defaults).length > 0)
+      ? JSON.stringify({
+          providers: payload.providers,
+          defaults: payload.defaults ?? {},
+        })
+      : null;
+  await prisma.userPreference.upsert({
+    where: { userId },
+    create: { userId, customProviders: raw },
+    update: { customProviders: raw },
+  });
+}
+
+type PreferenceFields = {
+  llmBaseUrl?: string;
+  llmApiKey?: string;
+  imageBaseUrl?: string;
+  imageApiKey?: string;
+  ttsBaseUrl?: string;
+  ttsApiKey?: string;
+  videoBaseUrl?: string;
+  videoApiKey?: string;
+};
+
 function toPreferenceFields(
   type: ApiType,
   config: Partial<ApiConfig>
-): Partial<{
-  llmBaseUrl: string;
-  llmApiKey: string;
-  imageBaseUrl: string;
-  imageApiKey: string;
-  ttsBaseUrl: string;
-  ttsApiKey: string;
-  videoBaseUrl: string;
-  videoApiKey: string;
-}> {
-  const out: Record<string, string> = {};
+): PreferenceFields {
+  const out: PreferenceFields = {};
   switch (type) {
     case "llm":
       if (config.baseUrl != null) out.llmBaseUrl = config.baseUrl;

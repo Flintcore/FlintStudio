@@ -1,8 +1,9 @@
 import { getCurrentSession } from "@/lib/auth";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { WorkflowRunForm } from "./workflow-run-form";
+import { RunList } from "./run-list";
 import { AppHeader } from "../../components/app-header";
 
 export default async function ProjectPage({
@@ -19,27 +20,12 @@ export default async function ProjectPage({
   });
   if (!project) notFound();
 
-  const [episodes, runs] = await Promise.all([
-    project.novelPromotion
-      ? prisma.novelPromotionEpisode.findMany({
-          where: { novelPromotionProjectId: project.novelPromotion.id },
-          orderBy: { episodeNumber: "asc" },
-        })
-      : [],
-    prisma.graphRun.findMany({
-      where: { projectId, userId: session.user.id },
-      orderBy: { queuedAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        status: true,
-        currentPhase: true,
-        errorMessage: true,
-        queuedAt: true,
-        finishedAt: true,
-      },
-    }),
-  ]);
+  const episodes = project.novelPromotion
+    ? await prisma.novelPromotionEpisode.findMany({
+        where: { novelPromotionProjectId: project.novelPromotion.id },
+        orderBy: { episodeNumber: "asc" },
+      })
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -66,26 +52,7 @@ export default async function ProjectPage({
 
         <WorkflowRunForm projectId={projectId} />
 
-        {runs.length > 0 && (
-          <section className="mt-8 animate-slide-up animation-delay-100">
-            <h2 className="font-medium text-[var(--foreground)]">最近运行</h2>
-            <ul className="card-base mt-3 space-y-2 rounded-2xl border border-[var(--border)] p-4">
-              {runs.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-[var(--muted)]">
-                    {r.status === "running" && (r.currentPhase ? `进行中 · ${r.currentPhase}` : "进行中")}
-                    {r.status === "completed" && "已完成"}
-                    {r.status === "failed" && (r.errorMessage || "失败")}
-                    {r.status === "queued" && "排队中"}
-                  </span>
-                  <span className="text-[var(--muted-light)]">
-                    {new Date(r.queuedAt).toLocaleString("zh-CN")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <RunList projectId={projectId} />
 
         {episodes.length > 0 && (
           <section className="mt-8 animate-slide-up animation-delay-150">

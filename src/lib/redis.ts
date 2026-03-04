@@ -1,14 +1,13 @@
 import Redis from "ioredis";
+import { env } from "./env";
 
-const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
-const REDIS_PORT = Number.parseInt(process.env.REDIS_PORT || "6379", 10);
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
-
-function createRedis(options?: { maxRetriesPerRequest: number | null }) {
+function createRedis(options?: { maxRetriesPerRequest?: number | null }) {
   return new Redis({
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-    password: REDIS_PASSWORD,
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD,
+    username: env.REDIS_USERNAME,
+    tls: env.REDIS_TLS ? {} : undefined,
     ...options,
     retryStrategy(times) {
       return Math.min(2 ** Math.min(times, 10) * 100, 30_000);
@@ -23,7 +22,9 @@ const globalForRedis = globalThis as typeof globalThis & {
 if (!globalForRedis.__flintRedis) {
   globalForRedis.__flintRedis = {
     app: createRedis({ maxRetriesPerRequest: 2 }),
-    queue: createRedis({ maxRetriesPerRequest: null as unknown as number }),
+    // BullMQ 要求 queue 连接的 maxRetriesPerRequest 为 null
+    // 使用类型断言以满足 BullMQ 的类型要求
+    queue: createRedis({ maxRetriesPerRequest: null }) as unknown as Redis,
   };
 }
 
