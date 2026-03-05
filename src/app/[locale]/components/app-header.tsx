@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Settings } from "lucide-react";
 
 const brand = "FlintStudio";
 
@@ -44,8 +45,9 @@ export function AppHeaderWorkspace() {
       right={
         <Link
           href="/settings"
-          className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-smooth px-2 py-1 rounded-lg hover:bg-[var(--accent-muted)]"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--accent-muted)] transition-smooth"
         >
+          <Settings className="h-4 w-4" />
           设置
         </Link>
       }

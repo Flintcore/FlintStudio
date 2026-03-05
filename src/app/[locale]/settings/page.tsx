@@ -13,13 +13,13 @@ export default async function SettingsPage() {
   const { providers, defaults } = await getCustomProvidersPayload(session.user.id);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen page-content-bg">
       <AppHeader backLabel="工作台" backHref="/workspace" />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 animate-fade-in">
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
           设置中心
         </h1>
-        <p className="mt-2 text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--muted)]">
           所有 AI 服务均需自行配置 API，无厂商锁定。支持多 API、多模型接入，可添加多个提供商并选择默认。
         </p>
         <div className="mt-8">

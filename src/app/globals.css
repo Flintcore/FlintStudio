@@ -45,6 +45,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 页面主区域 subtle 背景（避免纯白过于简陋） */
+.page-content-bg {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(217, 119, 6, 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(217, 119, 6, 0.04), transparent),
+    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(217, 119, 6, 0.03), transparent);
+  min-height: 100vh;
+}
+
 /* 统一焦点环 */
 input:focus-visible,
 button:focus-visible,
@@ -278,4 +287,17 @@ textarea:focus-visible {
 }
 .hover-lift:active {
   transform: translateY(0);
+}
+
+/* 区块标题统一样式 */
+.section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+.section-subtitle {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { History } from "lucide-react";
 
 type RunItem = {
   id: string;
@@ -35,9 +36,12 @@ export function RunList({ projectId }: { projectId: string }) {
   }, [projectId, statusFilter, queuedSince, queuedUntil]);
 
   return (
-    <section className="mt-8 animate-slide-up animation-delay-100">
-      <h2 className="font-medium text-[var(--foreground)]">运行记录</h2>
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)]/60 p-3">
+    <section className="mt-10 animate-slide-up animation-delay-100">
+      <div className="flex items-center gap-2 mb-3">
+        <History className="h-5 w-5 text-[var(--accent)]" />
+        <h2 className="section-title">运行记录</h2>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)]/80 p-3">
         <label className="flex items-center gap-1.5 text-sm text-[var(--muted)]">
           状态
           <select

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Zap } from "lucide-react";
 import { PipelineDagView } from "./workflow-pipeline-dag";
 
 type RunStatus = {
@@ -145,8 +146,13 @@ export function WorkflowRunForm({ projectId }: { projectId: string }) {
 
   return (
     <section className="card-base glass-surface mt-8 p-6 animate-slide-up animation-delay-100">
-      <h2 className="font-medium text-[var(--foreground)]">一键生成（多 Agent 自动流水线）</h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">
+      <h2 className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+          <Zap className="h-4 w-4" />
+        </span>
+        一键生成（多 Agent 自动流水线）
+      </h2>
+      <p className="mt-2 text-sm text-[var(--muted)]">
         粘贴小说或剧本文本，自动执行：剧本分析 → 分场 → 分镜 → …
       </p>
       <textarea
