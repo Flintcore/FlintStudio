@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
 import { env, validateEnv } from "@/lib/env";
+import { callAdvance } from "@/lib/utils/advance";
 
 // 启动时验证环境变量
 try {
@@ -41,8 +42,6 @@ const concurrency = {
   text: env.QUEUE_CONCURRENCY_TEXT,
 };
 
-const NEXT_PUBLIC_APP_URL = env.NEXTAUTH_URL;
-
 // 任务超时配置（毫秒）
 const TASK_TIMEOUTS = {
   text: 10 * 60 * 1000,    // 10 分钟
@@ -50,25 +49,6 @@ const TASK_TIMEOUTS = {
   voice: 10 * 60 * 1000,   // 10 分钟
   video: 30 * 60 * 1000,   // 30 分钟
 };
-
-async function callAdvance(runId: string, taskId: string) {
-  try {
-    const res = await fetch(`${NEXT_PUBLIC_APP_URL}/api/workflows/advance`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.INTERNAL_TASK_TOKEN}`,
-      },
-      body: JSON.stringify({ runId, taskId }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error(`[Workers] advance call failed: ${res.status} ${err}`);
-    }
-  } catch (e) {
-    console.error("[Workers] advance call failed:", (e as Error).message);
-  }
-}
 
 async function processTextJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
@@ -111,16 +91,18 @@ async function processTextJob(job: { data: TaskJobData }) {
         where: { id: targetId },
         include: { characters: true, locations: true },
       });
-      let review: { ok: boolean; issues: string[] } = { ok: true, issues: [] };
-      try {
-        review = await runReviewAnalysis({
-          userId,
-          episodeCount: episodeIds.length,
-          characterCount: np?.characters?.length ?? 0,
-          locationCount: np?.locations?.length ?? 0,
-        });
-      } catch (e) {
-        review = { ok: true, issues: [`复查 Agent 调用未返回: ${(e as Error).message}`] };
+      // 运行复查 Agent，评估分析结果质量
+      const review = await runReviewAnalysis({
+        userId,
+        episodeCount: episodeIds.length,
+        characterCount: np?.characters?.length ?? 0,
+        locationCount: np?.locations?.length ?? 0,
+      });
+      
+      // 记录复查结果
+      console.log(`[Worker] 剧本分析复查结果: 评分 ${review.score}/100, 通过: ${review.passed}`);
+      if (!review.passed && review.issues.length > 0) {
+        console.warn(`[Worker] 复查发现问题: ${review.issues.join("; ")}`);
       }
       await prisma.task.update({
         where: { id: taskId },

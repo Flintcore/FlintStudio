@@ -1,5 +1,6 @@
 import { getUserApiConfig } from "@/lib/api-config";
 import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
+import { withRetry, IMAGE_RETRY_OPTIONS } from "@/lib/utils/retry";
 
 /** 调用用户配置的图像 API（OpenAI 兼容 /v1/images/generations），返回图片 URL 或 base64 */
 export async function generateImage(opts: {
@@ -15,33 +16,46 @@ export async function generateImage(opts: {
 
   const base = normalizeOpenAIBaseUrl(config.baseUrl);
   const model = opts.model ?? config.model ?? "dall-e-3";
-  const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.imagesGenerations}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
+
+  return withRetry(
+    async () => {
+      const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.imagesGenerations}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          prompt: opts.prompt.slice(0, 4000),
+          n: 1,
+          size: opts.size ?? "1024x1024",
+          response_format: "url",
+          quality: "standard",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`图像生成失败: ${res.status} ${err}`);
+      }
+
+      const data = (await res.json()) as {
+        data?: Array<{ url?: string; b64_json?: string }>;
+      };
+      const first = data.data?.[0];
+      if (!first) throw new Error("图像 API 未返回图片");
+      if (first.url) return { url: first.url };
+      if (first.b64_json) return { b64: first.b64_json };
+      throw new Error("图像 API 返回格式异常");
     },
-    body: JSON.stringify({
-      model,
-      prompt: opts.prompt.slice(0, 4000),
-      n: 1,
-      size: opts.size ?? "1024x1024",
-      response_format: "url",
-      quality: "standard",
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`图像生成失败: ${res.status} ${err}`);
-  }
-
-  const data = (await res.json()) as {
-    data?: Array<{ url?: string; b64_json?: string }>;
-  };
-  const first = data.data?.[0];
-  if (!first) throw new Error("图像 API 未返回图片");
-  if (first.url) return { url: first.url };
-  if (first.b64_json) return { b64: first.b64_json };
-  throw new Error("图像 API 返回格式异常");
+    {
+      ...IMAGE_RETRY_OPTIONS,
+      onRetry: (error, attempt) => {
+        console.warn(
+          `[Image] 用户 ${opts.userId} 图像生成失败，第 ${attempt}/${IMAGE_RETRY_OPTIONS.maxAttempts} 次重试，错误: ${error.message}`
+        );
+      },
+    }
+  );
 }
