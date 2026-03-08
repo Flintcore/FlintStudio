@@ -18,6 +18,7 @@
   <a href="#-架构示意图--architecture">架构</a> •
   <a href="#-预览--preview">预览</a> •
   <a href="#-快速开始--quick-start">快速开始</a> •
+  <a href="#-文档--documentation">文档</a> •
   <a href="#-配置--configuration">配置</a> •
   <a href="#-流程--workflow">流程</a> •
   <a href="#-技术栈--tech-stack">技术栈</a> •
@@ -265,6 +266,16 @@ docker compose up -d
 
 ---
 
+## 📚 文档 · Documentation
+
+| 文档 | 说明 | 链接 |
+|------|------|------|
+| **宝塔面板安装指南** | 在 Linux 服务器使用宝塔面板部署 FlintStudio 的详细教程 | [BT_PANEL_INSTALL_GUIDE.md](docs/BT_PANEL_INSTALL_GUIDE.md) |
+| **更新日志** | 版本更新记录与新功能说明 | [CHANGELOG.md](CHANGELOG.md) |
+| **环境变量示例** | 所有支持的配置项说明 | [.env.example](.env.example) |
+
+---
+
 ### 进阶 / Advanced
 
 **本地开发（不用 Docker）**：若本机已安装 Node.js 18+、MySQL 8、Redis，可在项目目录执行：
@@ -316,7 +327,7 @@ All keys stay in your DB and env; nothing is sent to third parties.
 **中文**
 
 1. **工作台**（打开即进）→ **新建项目**
-2. 进入项目 → 在「一键生成」框内**粘贴小说或剧本文本** → 点击 **启动工作流**
+2. 进入项目 → 在「一键生成」框内**选择画风**（可选：写实实拍、3D 虚幻 CG、漫剧、日式动画等）→ **粘贴小说或剧本文本** → 点击 **启动工作流**
 3. 工作流**自动按顺序执行**（无需再点下一步）：
    - 剧本分析 → 分场 → 分镜 → 出图 → 配音 → 视频合成
 4. 结束后**刷新页面**，在项目页看到**集数**；进入某一集可查看**分场、分镜、出图、配音列表与成片播放**。
@@ -324,7 +335,7 @@ All keys stay in your DB and env; nothing is sent to third parties.
 **English**
 
 1. **Workspace** (opens directly) → **New project**
-2. Open the project → **Paste novel or script** in the one-click box → click **Start workflow**
+2. Open the project → **Select visual style** (optional: live-action, Unreal CG, manhua, anime, etc.) → **Paste novel or script** in the one-click box → click **Start workflow**
 3. The workflow **runs in order automatically** (no manual “next”):
    - Script analysis → Scene split → Storyboard → Images → Voiceover → Video composition
 4. **Refresh** when done; see **episodes** on the project page. Open an episode to view **scenes, storyboard, images, voice list, and the final video player**.
