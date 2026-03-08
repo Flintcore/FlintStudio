@@ -3,6 +3,7 @@ import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
 import { env, validateEnv } from "@/lib/env";
 import { callAdvance } from "@/lib/utils/advance";
+import { Prisma } from "@prisma/client";
 
 // 启动时验证环境变量
 try {
@@ -28,11 +29,12 @@ import { runAnalyzeNovel } from "@/lib/workflow/handlers/analyze-novel";
 import { runReviewAnalysis } from "@/lib/workflow/handlers/review-analysis";
 import { runStoryToScript } from "@/lib/workflow/handlers/story-to-script";
 import { runScriptToStoryboard } from "@/lib/workflow/handlers/script-to-storyboard";
-import { advanceRun, failRun, updateStepInputSummary } from "@/lib/workflow/service";
+import { advanceRun, failRun, updateStepInputSummary, getRunById } from "@/lib/workflow/service";
 import { generateImage } from "@/lib/generators/image-client";
 import { generateSpeech } from "@/lib/generators/tts-client";
 import { runVoiceExtract } from "@/lib/workflow/handlers/voice-extract";
 import { composeEpisodeVideo } from "@/lib/video/compose-episode";
+import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
 
 const concurrency = {
@@ -109,7 +111,7 @@ async function processTextJob(job: { data: TaskJobData }) {
         data: {
           status: "completed",
           finishedAt: new Date(),
-          result: { episodeIds, review },
+          result: { episodeIds, review } as unknown as Prisma.InputJsonValue,
         },
       });
       if (runId) await callAdvance(runId, taskId);
@@ -199,12 +201,15 @@ async function processTextJob(job: { data: TaskJobData }) {
         if (runId) await callAdvance(runId, taskId);
         return;
       }
+      const run = runId ? await getRunById(runId) : null;
+      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle ?? undefined;
       const allPanelIds: string[] = [];
       for (const clip of episode.clips) {
         const { panelIds } = await runScriptToStoryboard({
           userId,
           clipId: clip.id,
           clipContent: clip.content,
+          visualStyleId,
         });
         allPanelIds.push(...panelIds);
       }
@@ -240,6 +245,10 @@ async function processImageJob(job: { data: TaskJobData }) {
     });
     if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
+      const run = runId ? await getRunById(runId) : null;
+      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle ?? undefined;
+      const styleSuffix = getImagePromptSuffix(visualStyleId);
+
       const panels = await prisma.novelPromotionPanel.findMany({
         where: {
           storyboard: { episodeId },
@@ -249,9 +258,12 @@ async function processImageJob(job: { data: TaskJobData }) {
       let done = 0;
       let failed = 0;
       const failedPanels: string[] = [];
-      
+
       for (const panel of panels) {
-        const prompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
+        const basePrompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
+        const prompt = styleSuffix
+          ? `${basePrompt}${styleSuffix}`
+          : basePrompt;
         try {
           // 添加单个面板的超时控制
           const timeoutMs = 60000; // 60 秒超时
@@ -458,7 +470,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
         episodeId,
         segments: segs,
       });
-      const videoUrl = `${NEXT_PUBLIC_APP_URL}/api/media/episode/${episodeId}/video`;
+      const videoUrl = `${env.NEXTAUTH_URL}/api/media/episode/${episodeId}/video`;
       await prisma.novelPromotionEpisode.update({
         where: { id: episodeId },
         data: { videoUrl },
