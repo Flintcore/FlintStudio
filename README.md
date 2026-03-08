@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="#-功能--features">功能</a> •
+  <a href="#-架构示意图--architecture">架构</a> •
   <a href="#-预览--preview">预览</a> •
   <a href="#-快速开始--quick-start">快速开始</a> •
   <a href="#-配置--configuration">配置</a> •
@@ -26,6 +27,24 @@
 
 ---
 
+## 💬 有问题或建议？· Questions or feedback?
+
+**中文**  
+无论发现 Bug、功能建议，还是单纯不知道如何使用，都欢迎：
+- **GitHub Issues**（推荐）：[点击新建 Issue](https://github.com/Flintcore/FlintStudio/issues) —— 可以用**中文**或英文提问，不用在意格式！
+- 或者加入讨论社区：https://community.phantomcore.ai/
+
+> 💡 **新手提示**：不用担心问题太「小白」，每个 issue 都会让这个项目变得更好！
+
+**English**  
+Found a bug, have a feature idea, or just not sure how to use something? We’d love to hear from you:
+- **GitHub Issues** (recommended): [Open a new issue](https://github.com/Flintcore/FlintStudio/issues) — feel free to write in **Chinese** or English; no format rules!
+- Or join the community: https://community.phantomcore.ai/ 
+
+> 💡 **New here?** No question is too basic — every issue helps make this project better!
+
+---
+
 ## 📖 简介 · About
 
 **中文**  
@@ -33,6 +52,39 @@ FlintStudio 是一款**开源、可自托管**的 AI 影视自动化平台。粘
 
 **English**  
 FlintStudio is an **open-source, self-hosted** AI film automation platform. Paste a novel or script, hit one button, and the pipeline **runs automatically**: script analysis → scene splitting → storyboard → image generation → voiceover (TTS) → video composition (FFmpeg). No clicking through each step. All AI services (LLM, image, TTS) are configured in Settings with your own Base URL and API Key—**no vendor lock-in**. Use OpenRouter, OpenAI, or any compatible endpoint for a full novel-to-video workflow.
+
+---
+
+## 🏗️ 架构示意图 · Architecture
+
+**中文**  
+一键生成时，工作流按以下 DAG 顺序自动执行，每阶段由对应 Worker 完成任务后推进下一阶段。
+
+**English**  
+When you trigger one-click generation, the workflow runs in this order; each phase advances automatically after its workers complete.
+
+```mermaid
+flowchart LR
+  subgraph input[  ]
+    A[📄 小说/剧本<br/>Novel / Script]
+  end
+  subgraph pipeline[ 流水线 Pipeline ]
+    B[📜 剧本分析<br/>Analyze Novel]
+    C[📑 分场<br/>Story→Script]
+    D[🎞️ 分镜<br/>Script→Storyboard]
+    E[🖼️ 出图<br/>Panel Images]
+    F[🎙️ 配音<br/>Voice TTS]
+    G[🎥 视频合成<br/>Video FFmpeg]
+  end
+  H[📦 成片 MP4<br/>Episode Video]
+  A --> B --> C --> D --> E --> F --> G --> H
+```
+
+**中文**  
+系统组件：Next.js 提供 Web 与 API；BullMQ Worker 消费 Redis 队列执行各阶段任务；MySQL 存项目/集/分场/分镜等；LLM、图像、TTS 为设置中配置的外部 API。
+
+**English**  
+Components: Next.js serves the UI and API; BullMQ workers consume Redis queues for each phase; MySQL stores projects, episodes, clips, storyboards; LLM, image, and TTS call your configured external APIs.
 
 --- 
 
@@ -84,19 +136,138 @@ Preview of the UI and generated video.
 
 ## 🚀 快速开始 · Quick Start
 
-### 中文
+以下为**零基础可跟做**的 Docker 部署教程，从安装 Docker Desktop 到在浏览器里打开 FlintStudio。  
+Below is a **beginner-friendly** deployment guide from installing Docker Desktop to opening FlintStudio in your browser.
 
-**前置条件**：安装 [Docker Desktop](https://docs.docker.com/get-docker/)（或本地 Node.js 18+、MySQL 8、Redis）
+---
+
+### 中文版：小白部署教程
+
+#### 第一步：安装 Docker Desktop
+
+Docker Desktop 是一个用来运行 FlintStudio 及其依赖（MySQL、Redis）的桌面软件。
+
+1. **打开官网**：在浏览器中访问 [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)。
+2. **选择系统**：
+   - **Windows**：点击 “Docker Desktop for Windows”，下载安装包并运行。若提示需要 WSL 2，按页面说明启用即可。
+   - **macOS**：根据芯片选择 “Apple chip” 或 “Intel chip”，下载 `.dmg` 并安装。
+3. **安装完成后**：从开始菜单（Windows）或应用程序（Mac）打开 **Docker Desktop**，等待托盘/菜单栏出现 Docker 图标并显示 “Docker Desktop is running”。
+4. **（可选）注册账号**：首次打开可能提示登录 Docker 账号，可先跳过，不影响本地使用。
+
+#### 第二步：安装 Git（若尚未安装）
+
+用来下载 FlintStudio 的代码。若你已能使用 `git` 命令，可跳过。
+
+- **Windows**：到 [https://git-scm.com/download/win](https://git-scm.com/download/win) 下载并安装，安装时默认选项即可。安装完成后**重新打开**终端/PowerShell。
+- **macOS**：终端中执行 `xcode-select --install`，或从 [https://git-scm.com/download/mac](https://git-scm.com/download/mac) 安装。
+
+#### 第三步：获取 FlintStudio 代码
+
+1. 打开**终端**（Windows：在开始菜单搜 “PowerShell” 或 “终端”；Mac：打开 “终端” 或 “Terminal”）。
+2. 输入下面命令并回车，把项目下载到当前目录下的 `FlintStudio` 文件夹：
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/FlintStudio.git
+git clone https://github.com/Flintcore/FlintStudio.git
+```
+
+3. 进入项目目录：
+
+```bash
 cd FlintStudio
+```
+
+（以后若要更新代码，在该目录下执行 `git pull` 即可。）
+
+#### 第四步：用 Docker 启动服务
+
+1. 确保 **Docker Desktop 已运行**（托盘/菜单栏有 Docker 图标）。
+2. 在终端中确认当前在 `FlintStudio` 目录（可再执行一次 `cd FlintStudio`），然后执行：
+
+```bash
 docker compose up -d
 ```
 
-打开 **http://localhost:13000**，**打开即进入工作台**（无需登录）→ 新建项目 → 粘贴小说 → 点击「启动工作流」。首次启动会自动完成数据库初始化。
+3. **首次运行**会下载镜像并构建应用，可能需要几分钟。看到类似 “flintstudio-app … Started” 或没有报错即表示启动成功。
+4. 若出现端口被占用等错误，可先执行 `docker compose down` 再重试 `docker compose up -d`。
 
-**本地开发**（需已启动 MySQL、Redis）：
+#### 第五步：在浏览器中打开 FlintStudio
+
+1. 打开浏览器，在地址栏输入：**http://localhost:13000** 并回车。
+2. 若页面能打开，说明部署成功。**当前版本打开即进入工作台**，无需登录。
+3. 接下来可以：**新建项目** → 在「一键生成」框里**粘贴小说或剧本文本** → 点击 **启动工作流**。
+4. **使用前请先配置 API**：进入 **设置 → API 配置**，填写大语言模型、图像生成、语音合成的 Base URL 与 API Key（见下方 [配置](#-配置--configuration) 小节），否则工作流无法完成出图、配音等步骤。
+
+---
+
+**中文小结**：安装 Docker Desktop 和 Git → `git clone` 拉取代码 → `cd FlintStudio` → `docker compose up -d` → 浏览器打开 http://localhost:13000 → 设置里配好 API 即可使用。
+
+---
+
+### English: Beginner deployment guide
+
+#### Step 1: Install Docker Desktop
+
+Docker Desktop runs FlintStudio and its dependencies (MySQL, Redis) on your machine.
+
+1. **Open**: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/).
+2. **Choose your OS**:
+   - **Windows**: Download “Docker Desktop for Windows” and run the installer. Enable WSL 2 if prompted.
+   - **macOS**: Download the build for “Apple chip” or “Intel chip”, then install the `.dmg`.
+3. **After install**: Start **Docker Desktop** from the Start menu (Windows) or Applications (Mac). Wait until the tray/menu bar shows Docker and “Docker Desktop is running”.
+4. **Optional**: You can skip signing in to a Docker account for local use.
+
+#### Step 2: Install Git (if you don’t have it)
+
+You need Git to download the FlintStudio code. Skip this if `git` already works in your terminal.
+
+- **Windows**: [https://git-scm.com/download/win](https://git-scm.com/download/win) — run the installer with default options, then **reopen** PowerShell/Terminal.
+- **macOS**: Run `xcode-select --install` in Terminal, or install from [https://git-scm.com/download/mac](https://git-scm.com/download/mac).
+
+#### Step 3: Get the FlintStudio code
+
+1. Open a **terminal** (PowerShell or Terminal on Windows; Terminal on Mac).
+2. Run (this creates a `FlintStudio` folder in the current directory):
+
+```bash
+git clone https://github.com/Flintcore/FlintStudio.git
+```
+
+3. Go into the project folder:
+
+```bash
+cd FlintStudio
+```
+
+(To update later: run `git pull` inside this folder.)
+
+#### Step 4: Start the app with Docker
+
+1. Make sure **Docker Desktop is running** (Docker icon in tray/menu bar).
+2. In the terminal, ensure you’re in the `FlintStudio` folder (run `cd FlintStudio` if needed), then run:
+
+```bash
+docker compose up -d
+```
+
+3. The **first run** may take a few minutes while images are downloaded and the app is built. When you see something like “flintstudio-app … Started” and no errors, you’re good.
+4. If you see port-in-use or other errors, run `docker compose down` and try `docker compose up -d` again.
+
+#### Step 5: Open FlintStudio in your browser
+
+1. In your browser, go to: **http://localhost:13000**.
+2. If the page loads, deployment worked. **You’ll land on the workspace directly** (no login in current version).
+3. Next: **New project** → **Paste your novel or script** in the one-click box → click **Start workflow**.
+4. **Configure APIs first**: Go to **Settings → API configuration** and set Base URL + API Key for LLM, Image, and TTS (see [Configuration](#-配置--configuration) below). Without these, the workflow cannot generate images or voice.
+
+---
+
+**Summary**: Install Docker Desktop and Git → `git clone` the repo → `cd FlintStudio` → `docker compose up -d` → open http://localhost:13000 in the browser → configure APIs in Settings to use the full pipeline.
+
+---
+
+### 进阶 / Advanced
+
+**本地开发（不用 Docker）**：若本机已安装 Node.js 18+、MySQL 8、Redis，可在项目目录执行：
 
 ```bash
 cp .env.example .env
@@ -108,81 +279,11 @@ npm run dev
 
 访问 http://localhost:3000。Worker 会随 `npm run dev` 一起启动。
 
-**若使用 Docker 且修改代码后仍看到登录页或 HTTP 405**，多半是镜像/构建缓存未更新，请**无缓存重新构建并启动**：
-
-```bash
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-```
-
-或一步到位：
+**Docker 重新构建**：若修改了代码后页面仍异常（如登录页或 HTTP 405），可无缓存重建并启动：
 
 ```bash
 docker compose down && docker compose build --no-cache && docker compose up -d
 ```
-
-如需同时清理未使用的镜像、容器和构建缓存（释放磁盘）：
-
-```bash
-docker compose down
-docker system prune -a -f --volumes
-docker compose build --no-cache
-docker compose up -d
-```
-
-注意：`docker system prune -a` 会删除本机所有未使用的镜像/容器，若有其他项目依赖请勿使用，仅用前两条命令即可。
-
----
-
-### English
-
-**Prerequisites**: [Docker Desktop](https://docs.docker.com/get-docker/) (or local Node.js 18+, MySQL 8, Redis)
-
-```bash
-git clone https://github.com/YOUR_USERNAME/FlintStudio.git
-cd FlintStudio
-docker compose up -d
-```
-
-Open **http://localhost:13000** — **you land on the workspace directly** (no login) → New project → paste your novel → click **Start workflow**. DB is initialized on first run.
-
-**Local dev** (with MySQL and Redis running):
-
-```bash
-cp .env.example .env
-# Edit .env: DATABASE_URL, REDIS_HOST, etc.
-npm install
-npx prisma db push
-npm run dev
-```
-
-Visit http://localhost:3000. Workers start together with `npm run dev`.
-
-**If using Docker and you still see the login page or HTTP 405 after code changes**, the image is likely using a cached build. **Rebuild without cache and restart**:
-
-```bash
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-```
-
-Or in one line:
-
-```bash
-docker compose down && docker compose build --no-cache && docker compose up -d
-```
-
-To also remove unused images, containers, and build cache (frees disk):
-
-```bash
-docker compose down
-docker system prune -a -f --volumes
-docker compose build --no-cache
-docker compose up -d
-```
-
-Note: `docker system prune -a` removes all unused images/containers on the host; skip it if you have other projects.
 
 ---
 
