@@ -40,6 +40,7 @@ export interface ReviewResult {
     coherence: { score: number; comment: string };
   };
   issues: string[];
+  [key: string]: unknown;
 }
 
 /**
