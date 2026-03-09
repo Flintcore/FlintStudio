@@ -10,18 +10,20 @@ This file documents notable changes to FlintStudio.
 ## [Beta 0.20] - 2026-03-09
 
 ### 中文
-1. **OpenClaw Skill 增强**: 新增完整的 AI 控制功能，支持通过 OpenClaw 龙虾 AI 部署、启动、停止、更新、备份 FlintStudio
+1. **OpenClaw Skill 增强**: 新增完整的 AI 控制功能，支持通过 OpenClaw 龙虾 AI 部署、启动、停止、更新、备份 FlintStudio；新增 config、shell、clean、doctor、port、restart、restore 等命令
 2. **API 中转支持**: 新增 Comfly 和云雾 API 中转服务支持，在 .env.example 中添加配置示例
 3. **版本控制**: 项目进入 Beta 0.20 版本，建立版本发布流程
 4. **系统 Prompt 优化**: 优化 AI 助手的系统提示词，提升部署和故障排查能力
-5. **项目信息**: 在 README 底部添加 GitHub 仓库地址和作者邮箱
+5. **项目信息**: 在 README 底部添加 GitHub 仓库地址 https://github.com/flintcore/FlintStudio/ 和作者邮箱 qihuanteam@gmail.com
+6. **README 优化**: 补充 OpenClaw Skill 完整命令列表、子 Agent 能力说明、项目结构更新
 
 ### English
-1. **Enhanced OpenClaw Skill**: Added full AI control features for deploying, starting, stopping, updating, and backing up FlintStudio via OpenClaw AI
+1. **Enhanced OpenClaw Skill**: Added full AI control features for deploying, starting, stopping, updating, and backing up FlintStudio; new commands: config, shell, clean, doctor, port, restart, restore
 2. **API Proxy Support**: Added support for Comfly and Yunwu API proxy services with configuration examples
 3. **Version Control**: Project enters Beta 0.20 with established release process
 4. **System Prompt Optimization**: Enhanced AI assistant prompts for better deployment and troubleshooting
-5. **Project Info**: Added GitHub repository and author email to README footer
+5. **Project Info**: Added GitHub repository https://github.com/flintcore/FlintStudio/ and author email qihuanteam@gmail.com to README footer
+6. **README Optimization**: Added complete OpenClaw Skill command list, sub-agent capabilities, updated project structure
 
 ---
 

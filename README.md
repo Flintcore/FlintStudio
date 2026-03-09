@@ -119,6 +119,7 @@ Preview of the UI and generated video.
 | 🎙️ **配音** | 提取对白（LLM）→ 可配置 TTS 生成每条音频 → VoiceLine |
 | 🎥 **视频合成** | 分镜图 + 配音经 FFmpeg 合成为一集 MP4 → Episode.videoUrl |
 | ⚙️ **设置中心** | 所有 API（LLM、图像、语音）Base URL + API Key 在设置中配置 |
+| 🤖 **OpenClaw Skill** | 支持通过 OpenClaw 龙虾 AI 一键部署、配置、诊断、维护 |
 
 **English**
 
@@ -132,6 +133,7 @@ Preview of the UI and generated video.
 | 🎙️ **Voiceover** | Extract dialogue (LLM) → configurable TTS per line → VoiceLine.audioUrl |
 | 🎥 **Video composition** | FFmpeg merges panels + voice into one MP4 per episode → Episode.videoUrl |
 | ⚙️ **Settings** | All APIs (LLM, image, TTS) configured via Base URL + API Key in Settings |
+| 🤖 **OpenClaw Skill** | One-click deploy, configure, diagnose and maintain via OpenClaw AI |
 
 ---
 
@@ -271,6 +273,7 @@ docker compose up -d
 | 文档 | 说明 | 链接 |
 |------|------|------|
 | **宝塔面板安装指南** | 在 Linux 服务器使用宝塔面板部署 FlintStudio 的详细教程 | [BT_PANEL_INSTALL_GUIDE.md](docs/BT_PANEL_INSTALL_GUIDE.md) |
+| **OpenClaw Skill 文档** | AI 一键部署、配置、诊断完整指南 | [skills/flintstudio-deploy/README.md](skills/flintstudio-deploy/README.md) |
 | **更新日志** | 版本更新记录与新功能说明 | [CHANGELOG.md](CHANGELOG.md) |
 | **环境变量示例** | 所有支持的配置项说明 | [.env.example](.env.example) |
 
@@ -304,14 +307,39 @@ npm install -g openclaw-skill-flintstudio
 openclaw run flintstudio-deploy deploy
 ```
 
+**AI 子 Agent 能力：**
+- 🚀 **部署 Agent** - 自动完成环境检查、代码克隆、服务启动
+- ⚙️ **配置 Agent** - 交互式配置 LLM/图像/TTS API 密钥
+- 🔧 **诊断 Agent** - 自动排查故障并修复（`doctor` 命令）
+- 🛠️ **维护 Agent** - 日常维护：重启、更新、清理、备份
+- 📊 **监控 Agent** - 性能监控和资源使用分析
+
+**自然语言操控示例：**
+```
+检查 FlintStudio 运行状态，如果异常就重启它
+帮我配置 OpenAI API，然后测试一下连接
+清理 Docker 缓存，然后备份数据库
+诊断一下为什么出图失败了
+```
+
 **支持的命令：**
-- `deploy` - 完整部署
-- `start` - 启动服务
-- `stop` - 停止服务
-- `update` - 更新版本
-- `logs` - 查看日志
-- `status` - 检查状态
-- `backup` - 备份数据
+
+| 命令 | 说明 | Command | Description |
+|------|------|---------|-------------|
+| `deploy` | 完整部署（含环境检查、克隆、配置、启动） | `deploy` | Full deployment |
+| `start` | 启动服务 | `start` | Start services |
+| `stop` | 停止服务 | `stop` | Stop services |
+| `restart` | 重启服务（快速/完整重建） | `restart` | Restart services |
+| `update` | 更新到最新版本 | `update` | Update to latest |
+| `logs [svc]` | 查看日志（app/mysql/redis） | `logs [svc]` | View logs |
+| `status` | 检查运行状态 | `status` | Check status |
+| `config` | 交互式配置 API 密钥 | `config` | Configure API keys |
+| `shell` | 进入容器 Shell | `shell` | Enter container shell |
+| `clean` | 清理 Docker 缓存 | `clean` | Clean Docker cache |
+| `doctor` | 系统诊断和自动修复 | `doctor` | System diagnosis |
+| `port` | 查看/修改端口配置 | `port` | View/modify ports |
+| `backup [path]` | 备份数据库 | `backup` | Backup database |
+| `restore [file]` | 从备份恢复 | `restore` | Restore from backup |
 
 ---
 
@@ -509,20 +537,22 @@ docker compose down && docker compose build --no-cache && docker compose up -d
 **中文**  
 启动后进入 **设置 → API 配置** 填写：
 
-- **大语言模型**：剧本分析 / 分场 / 分镜 / 对白提取。推荐 [OpenRouter](https://openrouter.ai/) 或自建 OpenAI 兼容端点（Base URL + API Key）。
-- **图像生成**：分镜图生成。OpenAI 兼容接口（如 DALL·E、自建 Stable Diffusion 等）。
+- **大语言模型**：剧本分析 / 分场 / 分镜 / 对白提取。推荐 [OpenRouter](https://openrouter.ai/)、[Comfly](https://comfly.fun/)、[云雾](https://yunwu.ai/) 或自建 OpenAI 兼容端点。
+- **图像生成**：分镜图生成。OpenAI 兼容接口（如 DALL·E、Midjourney API、Comfly、云雾等）。
 - **语音合成**：配音。推荐 OpenAI 兼容 `/v1/audio/speech`（model: tts-1, voice: alloy）。
 - **视频**：本版使用 FFmpeg 将分镜图与配音合成 MP4，无需单独视频生成 API；Docker 镜像已内置 FFmpeg。
+- **API 中转**：支持 Comfly、云雾等国内稳定中转服务，详见 [.env.example](.env.example)
 
 所有密钥仅存于你的数据库与环境中，不上传第三方。
 
 **English**  
 After launch, go to **Settings → API configuration**:
 
-- **LLM**: Script analysis, scene splitting, storyboard, dialogue extraction. Use [OpenRouter](https://openrouter.ai/) or any OpenAI-compatible endpoint (Base URL + API Key).
-- **Image**: Panel image generation. Any OpenAI-compatible image API (e.g. DALL·E, self-hosted SD).
+- **LLM**: Script analysis, scene splitting, storyboard, dialogue extraction. Use [OpenRouter](https://openrouter.ai/), Comfly, Yunwu, or any OpenAI-compatible endpoint.
+- **Image**: Panel image generation. Any OpenAI-compatible image API (e.g. DALL·E, Midjourney API, Comfly, Yunwu).
 - **TTS**: Voiceover. OpenAI-compatible `/v1/audio/speech` (model: tts-1, voice: alloy) recommended.
 - **Video**: This release uses FFmpeg to merge panels + audio into MP4; no separate video API. FFmpeg is included in the Docker image.
+- **API Proxy**: Supports Comfly, Yunwu and other API proxy services. See [.env.example](.env.example)
 
 All keys stay in your DB and env; nothing is sent to third parties.
 
@@ -571,9 +601,12 @@ FlintStudio/
 │   ├── lib/video/            # FFmpeg 成片合成 · Video composition
 │   ├── lib/task/             # 队列与任务类型 · Queues & task types
 │   └── lib/workers/          # BullMQ 四类 Worker · Four worker types
+├── skills/                   # OpenClaw Skill 包 · OpenClaw Skills
+│   └── flintstudio-deploy/   # 一键部署 Skill · One-click deployment
 ├── docker-compose.yml
 ├── Dockerfile                # 含 ffmpeg · Includes ffmpeg
-└── CHANGELOG.md       # 更新日志 · Changelog
+├── CHANGELOG.md              # 更新日志 · Changelog
+└── VERSION                   # 当前版本 · Current version
 ```
 
 ---
