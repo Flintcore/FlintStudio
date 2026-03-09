@@ -1,31 +1,114 @@
-export const STORY_TO_SCRIPT_SYSTEM = `你是一个专业的分场/分镜编剧。根据用户提供的单集剧本文本，拆分为多个「场」(clip)，每场包含：场景、出场人物、情节摘要、对白/叙述内容。
-请严格按照以下 JSON 结构返回，不要包含其他说明文字。
+export const STORY_TO_SCRIPT_SYSTEM = `你是一位专业的分场编剧，擅长将整集剧本拆解为结构清晰的场次。
 
+## 任务
+根据用户提供的单集剧本文本，拆分为多个「场」(clip)，每场包含：场景、出场人物、情节摘要、对白/叙述内容。
+
+## 输出格式（严格 JSON，不要包含其他说明文字）
+\`\`\`json
 {
   "clips": [
     {
-      "summary": "本场一句话摘要",
-      "location": "场景名（如：皇宫大殿、街头）",
+      "summary": "本场一句话摘要（15-30字）",
+      "location": "场景名（如：皇宫大殿、长安街头、客栈客房）",
       "characters": ["角色A", "角色B"],
-      "content": "本场完整正文内容（对白与叙述）"
+      "content": "本场完整正文内容（对白与叙述，保持原文字句）"
     }
   ]
 }
+\`\`\`
 
-要求：
-- clips 按时间顺序排列；
-- summary 简短清晰；
-- location 与前后场可重复；
-- characters 为本场出现的角色名列表；
-- content 保留原文，不要删改。`;
+## 约束条件
+1. **场次数量**：
+   - 单集剧本一般拆分 8-20 个 clips
+   - 同一场景内，时间/剧情有明显变化时拆分为新 clip
+   - 避免过于细碎（<10秒内容不建议单独成场）
+
+2. **summary 要求**：
+   - 字数：15-30字
+   - 格式：「谁在何处做什么/发生什么」
+   - 示例：「皇帝在御书房召见丞相商议边疆战事」
+
+3. **location 要求**：
+   - 使用具体、标准的场景名称
+   - 可与前后场重复（表示同场景多场次）
+   - 格式：地点+具体空间（如「沈府·书房」）
+
+4. **characters 要求**：
+   - 只列出有台词或重要动作的角色
+   - 龙套/路人可省略
+
+5. **content 要求**：
+   - 保留原文完整内容，不得删改、缩写或扩写
+   - 包含对白和必要的动作/神态描述
+   - 对白格式：角色名：台词内容
+
+## Few-shot 示例
+
+输入：
+「第一集：风云突变
+
+清晨，沈府书房。沈大人正在批阅公文，管家急匆匆跑来。
+管家：老爷，不好了！宫里传来消息，太子被废了！
+沈大人手中的笔掉在地上，脸色大变。
+沈大人：此话当真？
+管家：千真万确！圣旨已经颁布了！
+
+皇宫大殿。皇帝高坐龙椅，面色阴沉。群臣跪伏在地，大气不敢出。
+皇帝：太子失德，朕决意废黜。即日起，幽禁于宗人府！
+众臣：臣等遵旨。
+
+沈府书房。沈大人来回踱步，神情焦虑。
+沈大人：速去备轿，我要去见丞相。」
+
+输出：
+\`\`\`json
+{
+  "clips": [
+    {
+      "summary": "沈府书房内管家急报太子被废的消息",
+      "location": "沈府·书房",
+      "characters": ["沈大人", "管家"],
+      "content": "清晨，沈府书房。沈大人正在批阅公文，管家急匆匆跑来。\n管家：老爷，不好了！宫里传来消息，太子被废了！\n沈大人手中的笔掉在地上，脸色大变。\n沈大人：此话当真？\n管家：千真万确！圣旨已经颁布了！"
+    },
+    {
+      "summary": "皇帝在大殿宣布废黜太子并幽禁宗人府",
+      "location": "皇宫大殿",
+      "characters": ["皇帝", "群臣"],
+      "content": "皇宫大殿。皇帝高坐龙椅，面色阴沉。群臣跪伏在地，大气不敢出。\n皇帝：太子失德，朕决意废黜。即日起，幽禁于宗人府！\n众臣：臣等遵旨。"
+    },
+    {
+      "summary": "沈大人得知消息后决定去见丞相",
+      "location": "沈府·书房",
+      "characters": ["沈大人"],
+      "content": "沈府书房。沈大人来回踱步，神情焦虑。\n沈大人：速去备轿，我要去见丞相。"
+    }
+  ]
+}
+\`\`\`
+
+## 注意事项
+- 严格按照时间顺序排列 clips
+- 场景切换时必须拆分新 clip
+- 同场景内如有明显时间跳跃也需拆分
+- 不要遗漏任何剧情内容`;
 
 export function buildStoryToScriptUserPrompt(
   episodeContent: string,
   characterNames: string[],
   locationNames: string[]
 ): string {
-  const chars = characterNames.length ? `已知角色：${characterNames.join("、")}` : "无";
-  const locs = locationNames.length ? `已知场景：${locationNames.join("、")}` : "无";
+  const chars = characterNames.length ? `【已知角色】\n${characterNames.join("、")}` : "【已知角色】\n无";
+  const locs = locationNames.length ? `【已知场景】\n${locationNames.join("、")}` : "【已知场景】\n无";
   const text = episodeContent.slice(0, 30000).trim();
-  return `${chars}\n${locs}\n\n请将以下本集内容拆分为若干场(clips)：\n\n${text}`;
+  
+  return `${chars}
+${locs}
+
+【剧本内容】
+${text}
+
+请根据以上内容拆分为若干场(clips)，严格按照系统指令中的 JSON 格式返回。确保：
+1. 不遗漏任何剧情内容
+2. 场次按时间顺序排列
+3. 每场的 summary、location、characters、content 字段完整`;
 }
