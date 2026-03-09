@@ -7,6 +7,28 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### 中文
+1. **OpenClaw 远程控制**: 新增 `flintstudio-control` Skill，支持通过 Telegram/飞书等 IM 平台远程控制 FlintStudio
+   - 创建项目、启动工作流、检查状态、获取结果
+   - 提供 Telegram Bot 和飞书 Bot 完整示例代码
+2. **OpenClaw API 端点**: 新增 7 个 REST API 端点供 OpenClaw 调用
+   - `/api/openclaw/status` - 系统状态
+   - `/api/openclaw/projects` - 项目管理
+   - `/api/openclaw/projects/[id]/episodes` - 剧集管理
+   - `/api/openclaw/workflow/run` - 启动工作流
+   - `/api/openclaw/workflow/status/[runId]` - 查询状态
+   - `/api/openclaw/config` - 配置管理
+3. **文档清理**: 删除冗余文档，只保留 CHANGELOG.md 和 README.md
+
+### English
+1. **OpenClaw Remote Control**: Added `flintstudio-control` Skill for remote control via Telegram/Lark IM platforms
+   - Create projects, start workflows, check status, get results
+   - Complete Telegram Bot and Lark Bot examples included
+2. **OpenClaw API Endpoints**: Added 7 REST API endpoints for OpenClaw integration
+3. **Documentation Cleanup**: Removed redundant docs, keeping only CHANGELOG.md and README.md
+
+---
+
 ## [Beta 0.20] - 2026-03-09
 
 ### 中文
