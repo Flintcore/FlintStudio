@@ -1,0 +1,53 @@
+{
+  "name": "openclaw-skill-flintstudio",
+  "version": "1.0.0",
+  "description": "OpenClaw Skill for deploying FlintStudio AI video platform",
+  "description_zh": "用于部署 FlintStudio AI 影视平台的 OpenClaw Skill",
+  "main": "deploy.ts",
+  "bin": {
+    "flintstudio-deploy": "./deploy.ts"
+  },
+  "scripts": {
+    "deploy": "ts-node deploy.ts deploy",
+    "start": "ts-node deploy.ts start",
+    "stop": "ts-node deploy.ts stop",
+    "update": "ts-node deploy.ts update",
+    "logs": "ts-node deploy.ts logs",
+    "status": "ts-node deploy.ts status",
+    "backup": "ts-node deploy.ts backup",
+    "reset": "ts-node deploy.ts reset"
+  },
+  "keywords": [
+    "openclaw",
+    "skill",
+    "flintstudio",
+    "ai",
+    "video",
+    "deployment",
+    "docker",
+    "部署",
+    "影视"
+  ],
+  "author": "Flintcore",
+  "license": "MIT",
+  "homepage": "https://github.com/Flintcore/FlintStudio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Flintcore/FlintStudio.git",
+    "directory": "skills/flintstudio-deploy"
+  },
+  "bugs": {
+    "url": "https://github.com/Flintcore/FlintStudio/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

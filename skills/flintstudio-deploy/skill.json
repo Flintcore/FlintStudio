@@ -1,0 +1,92 @@
+{
+  "name": "flintstudio-deploy",
+  "version": "1.0.0",
+  "description": "一键部署 FlintStudio AI 影视平台",
+  "description_en": "One-click deployment of FlintStudio AI video platform",
+  "author": "Flintcore",
+  "homepage": "https://github.com/Flintcore/FlintStudio",
+  "license": "MIT",
+  "min_api_version": "1.0.0",
+  "tags": ["deployment", "docker", "ai", "video", "flintstudio"],
+  "icon": "🎬",
+  "entry": {
+    "command": "deploy",
+    "description": "部署 FlintStudio",
+    "description_en": "Deploy FlintStudio"
+  },
+  "commands": [
+    {
+      "name": "deploy",
+      "description": "完整部署 FlintStudio（克隆代码+配置+启动）",
+      "description_en": "Full deployment of FlintStudio (clone+configure+start)",
+      "params": []
+    },
+    {
+      "name": "start",
+      "description": "启动已部署的 FlintStudio",
+      "description_en": "Start deployed FlintStudio",
+      "params": []
+    },
+    {
+      "name": "stop",
+      "description": "停止 FlintStudio 服务",
+      "description_en": "Stop FlintStudio services",
+      "params": []
+    },
+    {
+      "name": "update",
+      "description": "更新到最新版本",
+      "description_en": "Update to latest version",
+      "params": []
+    },
+    {
+      "name": "logs",
+      "description": "查看运行日志",
+      "description_en": "View runtime logs",
+      "params": [
+        {
+          "name": "service",
+          "description": "服务名称 (app/mysql/redis)",
+          "description_en": "Service name (app/mysql/redis)",
+          "required": false,
+          "default": "app"
+        }
+      ]
+    },
+    {
+      "name": "status",
+      "description": "检查运行状态",
+      "description_en": "Check running status",
+      "params": []
+    },
+    {
+      "name": "backup",
+      "description": "备份数据库",
+      "description_en": "Backup database",
+      "params": [
+        {
+          "name": "path",
+          "description": "备份保存路径",
+          "description_en": "Backup save path",
+          "required": false,
+          "default": "~/flintstudio-backups"
+        }
+      ]
+    },
+    {
+      "name": "reset",
+      "description": "重置所有数据（⚠️危险操作）",
+      "description_en": "Reset all data (⚠️dangerous)",
+      "params": [
+        {
+          "name": "confirm",
+          "description": "确认重置 (输入 'yes' 确认)",
+          "description_en": "Confirm reset (type 'yes' to confirm)",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "system_prompt": "你是一个 FlintStudio 部署助手。你的任务是帮助用户轻松部署和管理 FlintStudio AI 影视平台。\n\nFlintStudio 是一个开源的 AI 影视自动化平台，支持从小说到成片的全流程自动化。\n\n部署步骤：\n1. 检查系统环境（Docker、Git、端口占用）\n2. 克隆代码仓库\n3. 配置环境变量\n4. 启动 Docker Compose 服务\n5. 验证部署状态\n\n如果遇到错误，请尝试自动修复：\n- Docker 未安装 → 提示用户安装并提供链接\n- 端口被占用 → 自动检测可用端口并修改配置\n- 依赖下载失败 → 自动重试或切换镜像源\n- 权限问题 → 自动使用 sudo 或调整权限\n\n始终保持友好、耐心的态度，用简单易懂的语言解释技术问题。",
+  "system_prompt_en": "You are a FlintStudio deployment assistant. Your task is to help users easily deploy and manage the FlintStudio AI video platform.\n\nFlintStudio is an open-source AI film automation platform supporting full workflow from novel to video.\n\nDeployment steps:\n1. Check system environment (Docker, Git, port availability)\n2. Clone code repository\n3. Configure environment variables\n4. Start Docker Compose services\n5. Verify deployment status\n\nIf errors occur, try auto-fix:\n- Docker not installed → prompt user to install with links\n- Port occupied → auto-detect available ports and modify config\n- Dependency download failed → auto-retry or switch mirror\n- Permission issues → auto use sudo or adjust permissions\n\nAlways be friendly and patient, explaining technical issues in simple language."
+}
