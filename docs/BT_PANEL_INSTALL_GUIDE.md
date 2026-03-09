@@ -434,8 +434,12 @@ cp .env.example .env
 # 5. 编辑 .env 文件，设置必要的环境变量
 # INTERNAL_TASK_TOKEN, OPENAI_API_KEY 等
 
-# 6. 启动服务
+# 6. 启动服务（海外服务器直接执行）
 docker compose up -d
+
+# 如果是国内服务器，遇到 APK 下载失败时，编辑 docker-compose.yml
+# 取消 build.args 下的 MIRROR: cn 注释，或使用以下命令：
+# docker compose build --build-arg MIRROR=cn && docker compose up -d
 
 # 7. 查看日志
 docker compose logs -f
@@ -505,7 +509,48 @@ cat /www/server/panel/logs/request/2024-01-01.log
 
 ---
 
-### 3. 忘记面板密码
+### 3. Docker 构建时 ffmpeg 下载失败 (APK 网络问题)
+
+**现象：**
+```
+ERROR [2/9] RUN apk add --no-cache ffmpeg
+DNS: transient error (try again later)
+ERROR: unable to select packages: ffmpeg (no such package)
+```
+
+**原因：** Alpine Linux 官方源在国内网络下 DNS 解析失败
+
+**解决方案：**
+
+**方法一：修改 docker-compose.yml（推荐）**
+```yaml
+services:
+  app:
+    build:
+      context: .
+      args:
+        MIRROR: cn  # 国内用户使用阿里云镜像
+```
+
+**方法二：命令行指定镜像源**
+```bash
+# 国内用户
+docker compose build --build-arg MIRROR=cn
+docker compose up -d
+
+# 海外用户使用官方源（默认）
+docker compose build --build-arg MIRROR=official
+docker compose up -d
+```
+
+**可用镜像源选项：**
+- `official` - 官方源（默认，适合海外用户）
+- `cn` - 阿里云镜像（适合国内用户）
+- `global` - 清华大学镜像（适合教育网）
+
+---
+
+### 4. 忘记面板密码
 
 ```bash
 # 查看默认信息
