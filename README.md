@@ -591,6 +591,7 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 ## 📮 联系方式 · Contact
 
 **中文**  
+- **GitHub 仓库**: https://github.com/flintcore/FlintStudio/
 - **Email**：[qihuanteam@gmail.com](mailto:qihuanteam@gmail.com)
 - **微信号**：QTeam256（添加好友请备注 FlintStudio）
 - **微信群**：扫码加入交流群，交流使用心得与反馈。  
@@ -598,6 +599,7 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 - 若二维码失效，可通过 GitHub Issues 留言。
 
 **English**  
+- **GitHub Repository**: https://github.com/flintcore/FlintStudio/
 - **Email**: [qihuanteam@gmail.com](mailto:qihuanteam@gmail.com)
 - **WeChat ID**: QTeam256 (mention FlintStudio when adding)
 - **WeChat group**: Scan the QR code to join the community.  
@@ -611,6 +613,20 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 ## 📄 许可证 · License
 
 **MIT** · See [LICENSE](LICENSE).
+
+---
+
+## 📮 项目信息 · Project Info
+
+**中文**
+- **GitHub 仓库**: https://github.com/flintcore/FlintStudio/
+- **作者邮箱**: qihuanteam@gmail.com
+- **问题反馈**: https://github.com/flintcore/FlintStudio/issues
+
+**English**
+- **GitHub Repository**: https://github.com/flintcore/FlintStudio/
+- **Author Email**: qihuanteam@gmail.com
+- **Issue Tracker**: https://github.com/flintcore/FlintStudio/issues
 
 ---
 

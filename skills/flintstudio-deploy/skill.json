@@ -1,13 +1,13 @@
 {
   "name": "flintstudio-deploy",
-  "version": "1.0.0",
-  "description": "一键部署 FlintStudio AI 影视平台",
-  "description_en": "One-click deployment of FlintStudio AI video platform",
+  "version": "1.1.0",
+  "description": "一键部署和管理 FlintStudio AI 影视平台 - 完整程序控制版",
+  "description_en": "One-click deployment and management of FlintStudio AI video platform - Full Control Edition",
   "author": "Flintcore",
   "homepage": "https://github.com/Flintcore/FlintStudio",
   "license": "MIT",
   "min_api_version": "1.0.0",
-  "tags": ["deployment", "docker", "ai", "video", "flintstudio"],
+  "tags": ["deployment", "docker", "ai", "video", "flintstudio", "management", "devops"],
   "icon": "🎬",
   "entry": {
     "command": "deploy",
@@ -19,7 +19,22 @@
       "name": "deploy",
       "description": "完整部署 FlintStudio（克隆代码+配置+启动）",
       "description_en": "Full deployment of FlintStudio (clone+configure+start)",
-      "params": []
+      "params": [
+        {
+          "name": "mirror",
+          "description": "镜像源 (official/cn/global)",
+          "description_en": "Mirror source (official/cn/global)",
+          "required": false,
+          "default": "official"
+        },
+        {
+          "name": "path",
+          "description": "自定义安装路径",
+          "description_en": "Custom installation path",
+          "required": false,
+          "default": "~/FlintStudio"
+        }
+      ]
     },
     {
       "name": "start",
@@ -34,10 +49,32 @@
       "params": []
     },
     {
+      "name": "restart",
+      "description": "重启 FlintStudio 服务",
+      "description_en": "Restart FlintStudio services",
+      "params": [
+        {
+          "name": "quick",
+          "description": "快速重启（不重建容器）",
+          "description_en": "Quick restart (no rebuild)",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
       "name": "update",
       "description": "更新到最新版本",
       "description_en": "Update to latest version",
-      "params": []
+      "params": [
+        {
+          "name": "force",
+          "description": "强制更新（丢弃本地修改）",
+          "description_en": "Force update (discard local changes)",
+          "required": false,
+          "default": "false"
+        }
+      ]
     },
     {
       "name": "logs",
@@ -46,10 +83,17 @@
       "params": [
         {
           "name": "service",
-          "description": "服务名称 (app/mysql/redis)",
-          "description_en": "Service name (app/mysql/redis)",
+          "description": "服务名称 (app/mysql/redis/all)",
+          "description_en": "Service name (app/mysql/redis/all)",
           "required": false,
           "default": "app"
+        },
+        {
+          "name": "lines",
+          "description": "显示行数",
+          "description_en": "Number of lines",
+          "required": false,
+          "default": "100"
         }
       ]
     },
@@ -57,7 +101,120 @@
       "name": "status",
       "description": "检查运行状态",
       "description_en": "Check running status",
-      "params": []
+      "params": [
+        {
+          "name": "verbose",
+          "description": "详细模式",
+          "description_en": "Verbose mode",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "config",
+      "description": "交互式配置 API 密钥和系统设置",
+      "description_en": "Interactive configuration of API keys and system settings",
+      "params": [
+        {
+          "name": "type",
+          "description": "配置类型 (llm/image/tts/all)",
+          "description_en": "Config type (llm/image/tts/all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "show",
+          "description": "显示当前配置",
+          "description_en": "Show current config",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "shell",
+      "description": "进入 FlintStudio 容器 Shell",
+      "description_en": "Enter FlintStudio container shell",
+      "params": [
+        {
+          "name": "container",
+          "description": "容器名称 (app/mysql/redis)",
+          "description_en": "Container name (app/mysql/redis)",
+          "required": false,
+          "default": "app"
+        }
+      ]
+    },
+    {
+      "name": "clean",
+      "description": "清理 Docker 缓存和无用镜像",
+      "description_en": "Clean Docker cache and unused images",
+      "params": [
+        {
+          "name": "all",
+          "description": "深度清理（包括卷和网络）",
+          "description_en": "Deep clean (including volumes and networks)",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "dry-run",
+          "description": "模拟运行，不实际执行",
+          "description_en": "Dry run, don't actually execute",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "doctor",
+      "description": "诊断系统问题并给出修复建议",
+      "description_en": "Diagnose system issues and provide fixes",
+      "params": [
+        {
+          "name": "fix",
+          "description": "自动修复发现的问题",
+          "description_en": "Auto-fix discovered issues",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "full",
+          "description": "完整诊断（包括性能检查）",
+          "description_en": "Full diagnosis (including performance check)",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "port",
+      "description": "查看/修改端口配置",
+      "description_en": "View/modify port configuration",
+      "params": [
+        {
+          "name": "action",
+          "description": "操作 (list/check/change)",
+          "description_en": "Action (list/check/change)",
+          "required": false,
+          "default": "list"
+        },
+        {
+          "name": "service",
+          "description": "服务名称 (app/mysql/redis)",
+          "description_en": "Service name (app/mysql/redis)",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "new-port",
+          "description": "新端口号",
+          "description_en": "New port number",
+          "required": false,
+          "default": ""
+        }
+      ]
     },
     {
       "name": "backup",
@@ -70,6 +227,33 @@
           "description_en": "Backup save path",
           "required": false,
           "default": "~/flintstudio-backups"
+        },
+        {
+          "name": "auto",
+          "description": "自动备份（带时间戳）",
+          "description_en": "Auto backup (with timestamp)",
+          "required": false,
+          "default": "true"
+        }
+      ]
+    },
+    {
+      "name": "restore",
+      "description": "从备份恢复数据库",
+      "description_en": "Restore database from backup",
+      "params": [
+        {
+          "name": "file",
+          "description": "备份文件路径",
+          "description_en": "Backup file path",
+          "required": true
+        },
+        {
+          "name": "force",
+          "description": "强制恢复（覆盖现有数据）",
+          "description_en": "Force restore (overwrite existing data)",
+          "required": false,
+          "default": "false"
         }
       ]
     },
@@ -83,10 +267,17 @@
           "description": "确认重置 (输入 'yes' 确认)",
           "description_en": "Confirm reset (type 'yes' to confirm)",
           "required": true
+        },
+        {
+          "name": "keep-images",
+          "description": "保留 Docker 镜像",
+          "description_en": "Keep Docker images",
+          "required": false,
+          "default": "true"
         }
       ]
     }
   ],
-  "system_prompt": "你是一个 FlintStudio 部署助手。你的任务是帮助用户轻松部署和管理 FlintStudio AI 影视平台。\n\nFlintStudio 是一个开源的 AI 影视自动化平台，支持从小说到成片的全流程自动化。\n\n部署步骤：\n1. 检查系统环境（Docker、Git、端口占用）\n2. 克隆代码仓库\n3. 配置环境变量\n4. 启动 Docker Compose 服务\n5. 验证部署状态\n\n如果遇到错误，请尝试自动修复：\n- Docker 未安装 → 提示用户安装并提供链接\n- 端口被占用 → 自动检测可用端口并修改配置\n- 依赖下载失败 → 自动重试或切换镜像源\n- 权限问题 → 自动使用 sudo 或调整权限\n\n始终保持友好、耐心的态度，用简单易懂的语言解释技术问题。",
-  "system_prompt_en": "You are a FlintStudio deployment assistant. Your task is to help users easily deploy and manage the FlintStudio AI video platform.\n\nFlintStudio is an open-source AI film automation platform supporting full workflow from novel to video.\n\nDeployment steps:\n1. Check system environment (Docker, Git, port availability)\n2. Clone code repository\n3. Configure environment variables\n4. Start Docker Compose services\n5. Verify deployment status\n\nIf errors occur, try auto-fix:\n- Docker not installed → prompt user to install with links\n- Port occupied → auto-detect available ports and modify config\n- Dependency download failed → auto-retry or switch mirror\n- Permission issues → auto use sudo or adjust permissions\n\nAlways be friendly and patient, explaining technical issues in simple language."
+  "system_prompt": "你是 FlintStudio AI 部署管理助手，具备完整的程序控制能力。你的任务是帮助用户轻松部署、配置、管理和维护 FlintStudio AI 影视平台。\n\n## 🎬 FlintStudio 简介\nFlintStudio 是一个开源的 AI 影视自动化平台，支持从小说到成片的全流程自动化，包括剧本生成、分镜设计、图像生成、视频合成、语音合成等功能。\n\n## 🤖 子 Agent 能力说明\n你具备以下专项能力，可以调用对应的子 Agent：\n1. **部署 Agent** - 负责完整部署流程，包括环境检查、代码克隆、服务启动\n2. **配置 Agent** - 负责 API 密钥配置、环境变量管理、系统设置\n3. **诊断 Agent** - 负责系统诊断、故障排查、自动修复\n4. **维护 Agent** - 负责备份恢复、更新升级、清理优化\n5. **监控 Agent** - 负责性能监控、日志分析、状态检查\n\n## 🔧 故障诊断和自动修复流程\n当用户报告问题时，按以下流程处理：\n1. **信息收集** - 使用 doctor 命令收集系统状态、日志信息\n2. **问题定位** - 分析日志、检查配置、验证环境\n3. **自动修复** - 尝试自动修复常见问题（权限、端口、依赖）\n4. **建议提供** - 如果无法自动修复，提供详细的修复步骤\n\n### 常见问题的自动修复策略：\n- **Docker 未安装** → 检测操作系统，提供对应安装命令\n- **端口被占用** → 自动检测可用端口，询问用户后修改配置\n- **容器启动失败** → 检查日志、清理缓存、重试启动\n- **数据库连接失败** → 检查 MySQL 容器状态、网络配置\n- **API 调用失败** → 验证 API 密钥、检查网络连通性\n- **磁盘空间不足** → 执行 clean 命令清理无用资源\n- **内存不足** → 建议关闭其他服务或增加 Swap\n\n## 🔑 API 配置指导\n帮助用户配置各类 API 密钥，支持的服务商包括：\n\n### LLM API（大语言模型）\n- **OpenAI**: https://platform.openai.com/api-keys\n- **Azure OpenAI**: https://portal.azure.com\n- **Anthropic Claude**: https://console.anthropic.com\n- **Google Gemini**: https://makersuite.google.com/app/apikey\n- **国内替代**: DeepSeek、月之暗面、智谱 AI、文心一言\n\n### 图像生成 API\n- **OpenAI DALL-E**: 使用 OpenAI API Key\n- **Stability AI**: https://platform.stability.ai\n- **Midjourney**: 通过第三方 API\n- **国内替代**: 通义万相、文心一格、智谱 CogView\n\n### TTS API（语音合成）\n- **OpenAI TTS**: 使用 OpenAI API Key\n- **Azure TTS**: https://speech.microsoft.com\n- **ElevenLabs**: https://elevenlabs.io\n- **国内替代**: 讯飞、阿里云、腾讯云语音合成\n\n配置时提醒用户：\n- API Key 保存在 .env 文件中，请妥善保管\n- 建议使用环境变量或密钥管理服务\n- 定期轮换 API Key 以保证安全\n\n## 📊 性能监控建议\n帮助用户监控系统性能和资源使用：\n\n### 关键指标监控\n- **CPU 使用率** - 建议保持 < 80%，超过时检查任务队列\n- **内存使用率** - 建议保持 < 85%，超过时考虑扩容或优化\n- **磁盘空间** - 保持 > 20% 可用空间，定期清理日志和缓存\n- **网络带宽** - 视频生成需要稳定的上传下载速度\n- **数据库性能** - 监控慢查询，定期优化表结构\n\n### 优化建议\n- 定期使用 `clean` 命令清理 Docker 缓存\n- 大项目建议使用 SSD 存储提升 I/O 性能\n- 多用户场景建议配置负载均衡\n- 定期备份重要数据\n\n## 💡 使用建议\n- 始终保持友好、耐心的态度\n- 用简单易懂的语言解释技术问题\n- 执行危险操作前务必确认\n- 提供多种解决方案供用户选择\n- 鼓励用户使用 doctor 命令定期体检\n- 建议用户阅读官方文档 https://github.com/Flintcore/FlintStudio",
+  "system_prompt_en": "You are the FlintStudio AI Deployment Management Assistant with full programmatic control capabilities. Your task is to help users easily deploy, configure, manage, and maintain the FlintStudio AI video platform.\n\n## 🎬 FlintStudio Introduction\nFlintStudio is an open-source AI film automation platform supporting full workflow from novel to video, including script generation, storyboard design, image generation, video composition, and voice synthesis.\n\n## 🤖 Sub-Agent Capabilities\nYou have the following specialized capabilities:\n1. **Deploy Agent** - Handles complete deployment workflow\n2. **Config Agent** - Manages API keys and environment configuration\n3. **Diagnose Agent** - System diagnostics and troubleshooting\n4. **Maintain Agent** - Backup, restore, update, and cleanup\n5. **Monitor Agent** - Performance monitoring and log analysis\n\n## 🔧 Troubleshooting and Auto-Fix Process\n1. **Information Gathering** - Use doctor command to collect system status\n2. **Problem Identification** - Analyze logs, check configuration\n3. **Auto-Fix** - Attempt automatic fixes for common issues\n4. **Provide Suggestions** - Offer detailed fix steps if auto-fix fails\n\n## 🔑 API Configuration Guidance\nHelp users configure API keys for LLM, Image Generation, and TTS services from various providers including OpenAI, Azure, Anthropic, Google, and Chinese alternatives.\n\n## 📊 Performance Monitoring\nMonitor CPU, memory, disk, network, and database performance. Provide optimization suggestions for better resource utilization."
 }

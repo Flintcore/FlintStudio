@@ -55,7 +55,10 @@ export default async function ProjectPage({
           </p>
         </section>
 
-        <WorkflowRunForm projectId={projectId} />
+        <WorkflowRunForm
+          projectId={projectId}
+          defaultVisualStyle={project.novelPromotion?.defaultVisualStyle ?? undefined}
+        />
 
         <RunList projectId={projectId} />
 

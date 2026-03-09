@@ -121,6 +121,7 @@ model NovelPromotionProject {
   locationModel   String?
   storyboardModel String?
   artStyle        String                    @default("american-comic")
+  defaultVisualStyle String?                 // 一键成片默认画风，与 visual-style 的 id 对应
   videoRatio      String                    @default("9:16")
   videoResolution String                    @default("720p")
   imageResolution String                    @default("2K")

@@ -1,8 +1,8 @@
 {
   "name": "openclaw-skill-flintstudio",
-  "version": "1.0.0",
-  "description": "OpenClaw Skill for deploying FlintStudio AI video platform",
-  "description_zh": "用于部署 FlintStudio AI 影视平台的 OpenClaw Skill",
+  "version": "1.1.0",
+  "description": "OpenClaw Skill for deploying and managing FlintStudio AI video platform - Full Control Edition",
+  "description_zh": "用于部署和管理 FlintStudio AI 影视平台的 OpenClaw Skill - 完整控制版",
   "main": "deploy.ts",
   "bin": {
     "flintstudio-deploy": "./deploy.ts"
@@ -11,10 +11,17 @@
     "deploy": "ts-node deploy.ts deploy",
     "start": "ts-node deploy.ts start",
     "stop": "ts-node deploy.ts stop",
+    "restart": "ts-node deploy.ts restart",
     "update": "ts-node deploy.ts update",
     "logs": "ts-node deploy.ts logs",
     "status": "ts-node deploy.ts status",
+    "config": "ts-node deploy.ts config",
+    "shell": "ts-node deploy.ts shell",
+    "clean": "ts-node deploy.ts clean",
+    "doctor": "ts-node deploy.ts doctor",
+    "port": "ts-node deploy.ts port",
     "backup": "ts-node deploy.ts backup",
+    "restore": "ts-node deploy.ts restore",
     "reset": "ts-node deploy.ts reset"
   },
   "keywords": [
@@ -25,8 +32,11 @@
     "video",
     "deployment",
     "docker",
+    "management",
+    "devops",
     "部署",
-    "影视"
+    "影视",
+    "管理"
   ],
   "author": "Flintcore",
   "license": "MIT",

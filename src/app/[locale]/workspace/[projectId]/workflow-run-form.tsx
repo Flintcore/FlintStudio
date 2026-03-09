@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Zap } from "lucide-react";
+import { Zap, Palette } from "lucide-react";
 import { PipelineDagView } from "./workflow-pipeline-dag";
+import { VISUAL_STYLES } from "@/lib/workflow/visual-style";
 
 type RunStatus = {
   id: string;
@@ -39,8 +40,19 @@ function stepResultSummary(step: RunStatus["steps"][0]): string | null {
   return null;
 }
 
-export function WorkflowRunForm({ projectId }: { projectId: string }) {
+export function WorkflowRunForm({
+  projectId,
+  defaultVisualStyle,
+}: {
+  projectId: string;
+  defaultVisualStyle?: string | null;
+}) {
   const [novelText, setNovelText] = useState("");
+  const [visualStyle, setVisualStyle] = useState<string>(
+    defaultVisualStyle && VISUAL_STYLES.some((s) => s.id === defaultVisualStyle)
+      ? defaultVisualStyle
+      : "default"
+  );
   const [loading, setLoading] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<RunStatus | null>(null);
@@ -106,7 +118,11 @@ export function WorkflowRunForm({ projectId }: { projectId: string }) {
       const res = await fetch("/api/workflows/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, novelText: text }),
+        body: JSON.stringify({
+          projectId,
+          novelText: text,
+          visualStyle: visualStyle === "default" ? undefined : visualStyle,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -155,6 +171,29 @@ export function WorkflowRunForm({ projectId }: { projectId: string }) {
       <p className="mt-2 text-sm text-[var(--muted)]">
         粘贴小说或剧本文本，自动执行：剧本分析 → 分场 → 分镜 → …
       </p>
+
+      <div className="mt-4">
+        <label className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+          <Palette className="h-4 w-4 text-[var(--accent)]" />
+          画风（视觉风格）
+        </label>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
+          选择后，分镜与出图将统一采用该风格
+        </p>
+        <select
+          value={visualStyle}
+          onChange={(e) => setVisualStyle(e.target.value)}
+          className="input-base mt-2 w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)] disabled:opacity-50"
+          disabled={loading}
+        >
+          {VISUAL_STYLES.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.labelZh}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <textarea
         value={novelText}
         onChange={(e) => setNovelText(e.target.value)}
