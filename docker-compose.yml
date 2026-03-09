@@ -38,7 +38,11 @@ services:
       start_period: 5s
 
   app:
-    build: .
+    build:
+      context: .
+      # 国内用户遇到 APK 下载失败时，取消下方注释使用阿里云镜像
+      # args:
+      #   MIRROR: cn
     container_name: flintstudio-app
     restart: unless-stopped
     environment:
