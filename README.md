@@ -282,9 +282,40 @@ docker compose up -d
 > 
 > Too lazy to type commands? Let an AI employee handle it! OpenClaw is an open-source AI Agent that deploys, debugs, and fixes issues like a real engineer.
 
+### 方式一：安装 Skill 包（推荐）· Method 1: Install Skill Package (Recommended)
+
+我们提供了现成的 OpenClaw Skill，一键安装后即可使用：
+
+```bash
+# 一键安装 Skill
+curl -fsSL https://raw.githubusercontent.com/Flintcore/FlintStudio/main/skills/flintstudio-deploy/install.sh | bash
+
+# 或使用 npm
+npm install -g openclaw-skill-flintstudio
+```
+
+安装完成后，对 AI 说：
+```
+帮我部署 FlintStudio
+```
+
+或直接执行命令：
+```bash
+openclaw run flintstudio-deploy deploy
+```
+
+**支持的命令：**
+- `deploy` - 完整部署
+- `start` - 启动服务
+- `stop` - 停止服务
+- `update` - 更新版本
+- `logs` - 查看日志
+- `status` - 检查状态
+- `backup` - 备份数据
+
 ---
 
-### 中文版：AI 员工一键部署（小白推荐）
+### 方式二：手动配置 AI 员工 · Method 2: Manual AI Configuration
 
 #### 第一步：安装 OpenClaw（龙虾 AI）
 
