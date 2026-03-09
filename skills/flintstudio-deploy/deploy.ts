@@ -418,7 +418,7 @@ export function start(installPath: string = getInstallPath()): void {
   } catch (error) {
     console.error("❌ 启动失败:", error);
     console.log("💡 尝试诊断问题...");
-    doctor(false, installPath);
+    doctor(false, false, installPath);
   }
 }
 

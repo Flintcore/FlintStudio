@@ -322,6 +322,60 @@ openclaw run flintstudio-deploy deploy
 诊断一下为什么出图失败了
 ```
 
+---
+
+### 方式二：远程控制 FlintStudio（IM 集成）· Method 2: Remote Control via IM
+
+通过 OpenClaw + Telegram/飞书，你可以**在手机上远程控制 FlintStudio**，无需打开电脑浏览器：
+
+```bash
+# 安装控制 Skill
+openclaw skill install flintstudio-control
+
+# 连接到你的 FlintStudio 实例
+openclaw run flintstudio-control set-server http://your-server:13000
+
+# 创建项目并启动工作流
+openclaw run flintstudio-control create-project "我的短剧"
+openclaw run flintstudio-control start-workflow <project-id> "小说内容..." live_action
+
+# 检查进度
+openclaw run flintstudio-control check-status <run-id>
+```
+
+**IM 场景示例（Telegram/飞书）：**
+```
+用户：帮我创建一个新项目叫"霸总甜宠"
+AI：✅ 项目已创建，ID: proj_xxx
+
+用户：启动工作流，内容是：三年前，她被赶出家门...
+AI：🚀 工作流已启动，运行 ID: run_xxx
+    预计完成时间：15 分钟
+
+用户：进度如何？
+AI：📊 当前进度：剧本分析 ✓ → 分场 ✓ → 分镜进行中...
+    预计剩余时间：8 分钟
+
+用户：完成了吗？
+AI：✅ 已完成！生成 3 集视频
+    第1集：http://server/video/xxx
+    第2集：http://server/video/yyy
+```
+
+**支持的命令：**
+
+| 命令 | 功能 | 示例 |
+|------|------|------|
+| `test-connection` | 测试服务器连接 | `test-connection` |
+| `create-project [name]` | 创建新项目 | `create-project "短剧名称"` |
+| `list-projects` | 列出所有项目 | `list-projects` |
+| `start-workflow <id> <text> [style]` | 启动一键成片 | `start-workflow proj_xxx "内容..." anime` |
+| `check-status <runId>` | 检查工作流状态 | `check-status run_xxx` |
+| `get-result <id> <episode>` | 获取生成结果 | `get-result proj_xxx 1` |
+| `configure-api` | 配置 API 密钥 | `configure-api` |
+
+**集成教程：** 详见 [skills/flintstudio-control/examples/](skills/flintstudio-control/examples/)
+
 **支持的命令：**
 
 | 命令 | 说明 | Command | Description |

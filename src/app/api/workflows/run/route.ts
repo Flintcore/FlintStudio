@@ -63,9 +63,10 @@ export async function POST(req: Request) {
     }
 
     if (inputVisualStyle && project.novelPromotion) {
+      const novelPromotionId = project.novelPromotion.id;
       await import("@/lib/db").then((m) =>
         m.prisma.novelPromotionProject.update({
-          where: { id: project.novelPromotion.id },
+          where: { id: novelPromotionId },
           data: { defaultVisualStyle: inputVisualStyle },
         })
       );

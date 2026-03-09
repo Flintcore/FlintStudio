@@ -1,0 +1,254 @@
+{
+  "name": "flintstudio-control",
+  "version": "1.0.0",
+  "description": "通过 IM 平台控制 FlintStudio 核心业务功能 - 创建项目、启动工作流、查看状态",
+  "description_en": "Control FlintStudio core business via IM platforms - create projects, run workflows, check status",
+  "author": "Flintcore",
+  "homepage": "https://github.com/Flintcore/FlintStudio",
+  "license": "MIT",
+  "min_api_version": "1.0.0",
+  "tags": [
+    "flintstudio",
+    "control",
+    "api",
+    "project",
+    "workflow",
+    "im",
+    "telegram",
+    "lark"
+  ],
+  "icon": "🎮",
+  "entry": {
+    "command": "help",
+    "description": "显示帮助信息",
+    "description_en": "Show help information"
+  },
+  "commands": [
+    {
+      "name": "help",
+      "description": "显示所有可用命令",
+      "description_en": "Show all available commands",
+      "params": []
+    },
+    {
+      "name": "create-project",
+      "description": "创建新项目",
+      "description_en": "Create a new project",
+      "params": [
+        {
+          "name": "name",
+          "description": "项目名称（可选，默认使用日期）",
+          "description_en": "Project name (optional, defaults to date)",
+          "required": false,
+          "default": ""
+        }
+      ]
+    },
+    {
+      "name": "list-projects",
+      "description": "列出所有项目",
+      "description_en": "List all projects",
+      "params": [
+        {
+          "name": "limit",
+          "description": "返回项目数量限制",
+          "description_en": "Number of projects to return",
+          "required": false,
+          "default": "20"
+        }
+      ]
+    },
+    {
+      "name": "delete-project",
+      "description": "删除指定项目",
+      "description_en": "Delete a project",
+      "params": [
+        {
+          "name": "projectId",
+          "description": "项目 ID",
+          "description_en": "Project ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create-episode",
+      "description": "为项目创建新剧集（通过启动工作流）",
+      "description_en": "Create a new episode for project (via workflow)",
+      "params": [
+        {
+          "name": "projectId",
+          "description": "项目 ID",
+          "description_en": "Project ID",
+          "required": true
+        },
+        {
+          "name": "novelText",
+          "description": "小说或剧本文本内容",
+          "description_en": "Novel or script text content",
+          "required": true
+        },
+        {
+          "name": "visualStyle",
+          "description": "画风风格 (default/live_action/unreal_cg/manhua/anime/donghua_3d/cinematic/american_comic)",
+          "description_en": "Visual style (default/live_action/unreal_cg/manhua/anime/donghua_3d/cinematic/american_comic)",
+          "required": false,
+          "default": "default"
+        }
+      ]
+    },
+    {
+      "name": "start-workflow",
+      "description": "启动工作流（一键成片）",
+      "description_en": "Start workflow (one-click generation)",
+      "params": [
+        {
+          "name": "projectId",
+          "description": "项目 ID",
+          "description_en": "Project ID",
+          "required": true
+        },
+        {
+          "name": "novelText",
+          "description": "小说或剧本文本内容",
+          "description_en": "Novel or script text content",
+          "required": true
+        },
+        {
+          "name": "visualStyle",
+          "description": "画风风格",
+          "description_en": "Visual style",
+          "required": false,
+          "default": "default"
+        }
+      ]
+    },
+    {
+      "name": "list-workflows",
+      "description": "列出工作流运行记录",
+      "description_en": "List workflow runs",
+      "params": [
+        {
+          "name": "projectId",
+          "description": "项目 ID（可选，筛选特定项目）",
+          "description_en": "Project ID (optional, filter by project)",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "status",
+          "description": "状态筛选 (queued/running/completed/failed/canceled)",
+          "description_en": "Status filter (queued/running/completed/failed/canceled)",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "limit",
+          "description": "返回数量限制",
+          "description_en": "Number of results to return",
+          "required": false,
+          "default": "20"
+        }
+      ]
+    },
+    {
+      "name": "check-status",
+      "description": "检查工作流运行状态",
+      "description_en": "Check workflow run status",
+      "params": [
+        {
+          "name": "runId",
+          "description": "工作流运行 ID",
+          "description_en": "Workflow run ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get-result",
+      "description": "获取剧集生成结果",
+      "description_en": "Get episode generation results",
+      "params": [
+        {
+          "name": "projectId",
+          "description": "项目 ID",
+          "description_en": "Project ID",
+          "required": true
+        },
+        {
+          "name": "episodeNumber",
+          "description": "剧集编号",
+          "description_en": "Episode number",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "configure-api",
+      "description": "配置 API 密钥",
+      "description_en": "Configure API keys",
+      "params": [
+        {
+          "name": "type",
+          "description": "配置类型 (llm/image/tts/all)",
+          "description_en": "Config type (llm/image/tts/all)",
+          "required": false,
+          "default": "all"
+        }
+      ]
+    },
+    {
+      "name": "get-config",
+      "description": "查看当前 API 配置",
+      "description_en": "View current API configuration",
+      "params": []
+    },
+    {
+      "name": "continue-workflow",
+      "description": "继续暂停的工作流（复查通过后）",
+      "description_en": "Continue paused workflow (after review)",
+      "params": [
+        {
+          "name": "runId",
+          "description": "工作流运行 ID",
+          "description_en": "Workflow run ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "retry-analyze",
+      "description": "重试剧本分析步骤",
+      "description_en": "Retry novel analysis step",
+      "params": [
+        {
+          "name": "runId",
+          "description": "工作流运行 ID",
+          "description_en": "Workflow run ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "set-server",
+      "description": "设置 FlintStudio 服务器地址",
+      "description_en": "Set FlintStudio server address",
+      "params": [
+        {
+          "name": "url",
+          "description": "服务器地址（如 http://localhost:13000）",
+          "description_en": "Server URL (e.g., http://localhost:13000)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "test-connection",
+      "description": "测试与服务器的连接",
+      "description_en": "Test connection to server",
+      "params": []
+    }
+  ],
+  "system_prompt": "你是 FlintStudio 业务控制助手，帮助用户通过 IM 平台（Telegram、飞书等）控制 FlintStudio AI 影视平台的核心业务功能。\n\n## 🎬 FlintStudio 简介\nFlintStudio 是一个开源的 AI 影视自动化平台，支持从小说到成片的全流程自动化：\n- 剧本分析 → 分场 → 分镜 → 出图 → 配音 → 视频合成\n\n## 🎮 核心功能\n\n### 项目管理\n- `create-project [name]` - 创建新项目\n- `list-projects [limit]` - 列出所有项目\n- `delete-project <projectId>` - 删除项目\n\n### 工作流控制\n- `start-workflow <projectId> <novelText> [visualStyle]` - 启动一键成片工作流\n- `create-episode <projectId> <novelText> [visualStyle]` - 创建剧集（同 start-workflow）\n- `list-workflows [projectId] [status] [limit]` - 查看工作流运行记录\n- `check-status <runId>` - 检查工作流状态\n- `continue-workflow <runId>` - 继续暂停的工作流\n- `retry-analyze <runId>` - 重试剧本分析\n\n### 结果获取\n- `get-result <projectId> <episodeNumber>` - 获取生成的剧集结果\n\n### 配置管理\n- `configure-api [type]` - 配置 API 密钥（llm/image/tts/all）\n- `get-config` - 查看当前配置\n- `set-server <url>` - 设置服务器地址\n- `test-connection` - 测试连接\n\n## 🎨 画风风格选项\n- `default` - 默认（AI 自由发挥）\n- `live_action` - 写实实拍\n- `unreal_cg` - 3D 虚幻引擎游戏 CG\n- `manhua` - 漫剧 / 条漫\n- `anime` - 日式动画\n- `donghua_3d` - 3D 国漫 / 修仙\n- `cinematic` - 电影感（通用）\n- `american_comic` - 美漫 / 美式漫画\n\n## 📊 工作流状态说明\n- `queued` - 排队中\n- `running` - 运行中\n- `completed` - 已完成\n- `failed` - 失败\n- `canceled` - 已取消\n\n## 🔧 工作流阶段（DAG 执行顺序）\n1. `analyze_novel` - 剧本分析\n2. `review_failed` - 复查未通过（暂停等待）\n3. `story_to_script` - 分场\n4. `script_to_storyboard` - 分镜\n5. `image_panels` - 出图\n6. `voice` - 配音\n7. `video` - 视频合成\n\n## 💡 使用示例\n\n### 创建项目并启动工作流\n```\n1. 创建项目：create-project 我的小说改编\n2. 复制返回的项目 ID\n3. 启动工作流：start-workflow <projectId> \\n\"第一章 内容...\" live_action\n```\n\n### 检查工作流进度\n```\n1. 列出工作流：list-workflows\n2. 检查状态：check-status <runId>\n3. 如果状态为 completed，获取结果：get-result <projectId> 1\n```\n\n### 配置 API\n```\nconfigure-api all\n```\n然后按提示输入 LLM、图像、TTS 的 API 配置。\n\n## ⚠️ 重要提示\n1. 首次使用前必须先配置 API 密钥（configure-api）\n2. 小说文本长度限制：10万字符\n3. 工作流启动后会自动执行，无需手动干预\n4. 如果停在 review_failed 阶段，需要人工检查后继续\n5. 所有操作默认连接到 http://localhost:13000，可通过 set-server 修改\n\n## 🔗 服务器配置\n- 默认地址：http://localhost:13000\n- 修改命令：set-server http://your-server:13000\n- 连接测试：test-connection\n\n## 📱 IM 平台交互风格\n- 保持回复简洁明了\n- 使用 emoji 增强可读性\n- 关键信息高亮显示\n- 提供下一步操作建议\n- 遇到错误给出清晰解决方案",
+  "system_prompt_en": "You are the FlintStudio Business Control Assistant, helping users control FlintStudio AI video platform core functions via IM platforms (Telegram, Lark, etc.).\n\n## 🎬 FlintStudio Introduction\nFlintStudio is an open-source AI film automation platform supporting full workflow from novel to video:\n- Script analysis → Scene splitting → Storyboard → Images → Voiceover → Video composition\n\n## 🎮 Core Features\n\n### Project Management\n- `create-project [name]` - Create new project\n- `list-projects [limit]` - List all projects\n- `delete-project <projectId>` - Delete project\n\n### Workflow Control\n- `start-workflow <projectId> <novelText> [visualStyle]` - Start one-click generation workflow\n- `create-episode <projectId> <novelText> [visualStyle]` - Create episode (same as start-workflow)\n- `list-workflows [projectId] [status] [limit]` - View workflow runs\n- `check-status <runId>` - Check workflow status\n- `continue-workflow <runId>` - Continue paused workflow\n- `retry-analyze <runId>` - Retry novel analysis\n\n### Results\n- `get-result <projectId> <episodeNumber>` - Get generated episode results\n\n### Configuration\n- `configure-api [type]` - Configure API keys (llm/image/tts/all)\n- `get-config` - View current configuration\n- `set-server <url>` - Set server address\n- `test-connection` - Test connection\n\n## 🎨 Visual Style Options\n- `default` - Default (AI decides)\n- `live_action` - Live-action / Photorealistic\n- `unreal_cg` - Unreal Engine / Game CG\n- `manhua` - Manhua / Webtoon\n- `anime` - Anime\n- `donghua_3d` - Chinese 3D Donghua\n- `cinematic` - Cinematic (general)\n- `american_comic` - American comic\n\n## 📊 Workflow Status\n- `queued` - Queued\n- `running` - Running\n- `completed` - Completed\n- `failed` - Failed\n- `canceled` - Canceled\n\n## 🔧 Workflow Phases (DAG Execution Order)\n1. `analyze_novel` - Script analysis\n2. `review_failed` - Review failed (paused)\n3. `story_to_script` - Scene splitting\n4. `script_to_storyboard` - Storyboard\n5. `image_panels` - Image generation\n6. `voice` - Voiceover\n7. `video` - Video composition\n\n## 💡 Usage Examples\n\n### Create Project and Start Workflow\n```\n1. Create project: create-project My Novel Adaptation\n2. Copy the returned project ID\n3. Start workflow: start-workflow <projectId> \\\"Chapter 1 content...\\\" live_action\n```\n\n### Check Workflow Progress\n```\n1. List workflows: list-workflows\n2. Check status: check-status <runId>\n3. If status is completed, get result: get-result <projectId> 1\n```\n\n### Configure API\n```\nconfigure-api all\n```\nThen follow prompts to enter LLM, Image, and TTS API configurations.\n\n## ⚠️ Important Notes\n1. Must configure API keys before first use (configure-api)\n2. Novel text length limit: 100,000 characters\n3. Workflow runs automatically after starting, no manual intervention needed\n4. If stuck at review_failed phase, manual review and continue required\n5. All operations default to http://localhost:13000, use set-server to change\n\n## 🔗 Server Configuration\n- Default: http://localhost:13000\n- Change: set-server http://your-server:13000\n- Test: test-connection\n\n## 📱 IM Platform Interaction Style\n- Keep replies concise and clear\n- Use emoji for better readability\n- Highlight key information\n- Provide next-step suggestions\n- Give clear solutions for errors"
+}

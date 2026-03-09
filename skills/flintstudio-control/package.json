@@ -1,0 +1,41 @@
+{
+  "name": "flintstudio-control",
+  "version": "1.0.0",
+  "description": "OpenClaw Skill for controlling FlintStudio core business functions via IM platforms",
+  "description_zh": "通过 IM 平台控制 FlintStudio 核心业务功能的 OpenClaw Skill",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "openclaw",
+    "skill",
+    "flintstudio",
+    "ai",
+    "video",
+    "automation",
+    "telegram",
+    "lark",
+    "im"
+  ],
+  "author": "Flintcore",
+  "license": "MIT",
+  "homepage": "https://github.com/Flintcore/FlintStudio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Flintcore/FlintStudio.git",
+    "directory": "skills/flintstudio-control"
+  },
+  "bugs": {
+    "url": "https://github.com/Flintcore/FlintStudio/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
