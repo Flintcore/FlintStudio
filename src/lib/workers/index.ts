@@ -202,7 +202,7 @@ async function processTextJob(job: { data: TaskJobData }) {
         return;
       }
       const run = runId ? await getRunById(runId) : null;
-      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle ?? undefined;
+      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle || null;
       const allPanelIds: string[] = [];
       for (const clip of episode.clips) {
         const { panelIds } = await runScriptToStoryboard({
@@ -246,7 +246,7 @@ async function processImageJob(job: { data: TaskJobData }) {
     if (runId) await updateStepInputSummary(runId, taskId, { episodeId });
     try {
       const run = runId ? await getRunById(runId) : null;
-      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle ?? undefined;
+      const visualStyleId = (run?.input as { visualStyle?: string } | null)?.visualStyle || null;
       const styleSuffix = getImagePromptSuffix(visualStyleId);
 
       const panels = await prisma.novelPromotionPanel.findMany({
