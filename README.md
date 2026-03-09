@@ -597,6 +597,63 @@ docker compose down && docker compose build --no-cache && docker compose up -d
 - **视频**：本版使用 FFmpeg 将分镜图与配音合成 MP4，无需单独视频生成 API；Docker 镜像已内置 FFmpeg。
 - **API 中转**：支持 Comfly、云雾等国内稳定中转服务，详见 [.env.example](.env.example)
 
+#### 🖥️ 本地模型支持 · Local Model Support
+
+FlintStudio 支持对接本地模型，无需云端 API，保护隐私、零成本运行。
+
+**Ollama（大语言模型）**
+```bash
+# 1. 安装 Ollama
+https://ollama.com/download
+
+# 2. 拉取模型
+ollama pull llama3.2
+
+# 3. 启动服务（默认 http://localhost:11434）
+ollama serve
+```
+
+**ComfyUI（图像生成）**
+```bash
+# 1. 安装 ComfyUI
+git clone https://github.com/comfyanonymous/ComfyUI.git
+cd ComfyUI
+pip install -r requirements.txt
+
+# 2. 启动服务（默认 http://localhost:8188）
+python main.py
+```
+
+**配置 FlintStudio**
+在 `.env` 文件中添加：
+```bash
+OLLAMA_ENABLED=true
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+COMFYUI_ENABLED=true
+COMFYUI_BASE_URL=http://localhost:8188
+COMFYUI_CHECKPOINT=sd_xl_base_1.0.safetensors
+```
+
+**English**
+
+FlintStudio supports local models for privacy and zero-cost operation.
+
+**Ollama (LLM for text generation)**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2
+ollama serve  # Runs on http://localhost:11434
+```
+
+**ComfyUI (Local Stable Diffusion for images)**
+```bash
+git clone https://github.com/comfyanonymous/ComfyUI.git
+cd ComfyUI && pip install -r requirements.txt
+python main.py  # Runs on http://localhost:8188
+```
+
 所有密钥仅存于你的数据库与环境中，不上传第三方。
 
 **English**  
