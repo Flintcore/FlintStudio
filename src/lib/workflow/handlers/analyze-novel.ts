@@ -56,20 +56,49 @@ export async function runAnalyzeNovel(opts: {
     });
   }
 
+  // 获取当前已有剧集的最大编号，避免冲突
+  const lastEpisode = await prisma.novelPromotionEpisode.findFirst({
+    where: { novelPromotionProjectId: novelPromotionId },
+    orderBy: { episodeNumber: "desc" },
+    select: { episodeNumber: true },
+  });
+  const baseEpisodeNumber = (lastEpisode?.episodeNumber ?? 0);
+
   const episodeIds: string[] = [];
   for (const ep of episodes) {
-    const num = Number(ep?.episodeNumber) || 1;
-    const name = String(ep?.name ?? `第${num}集`).trim();
+    // 基于已有剧集编号偏移，确保不冲突
+    const aiEpisodeNum = Number(ep?.episodeNumber) || 1;
+    const num = baseEpisodeNumber + aiEpisodeNum;
+    const name = String(ep?.name ?? `第${aiEpisodeNum}集`).trim();
     const content = String(ep?.content ?? "").trim();
-    const created = await prisma.novelPromotionEpisode.create({
-      data: {
-        novelPromotionProjectId: novelPromotionId,
-        episodeNumber: num,
-        name,
-        novelText: content,
-      },
-    });
-    episodeIds.push(created.id);
+    
+    try {
+      const created = await prisma.novelPromotionEpisode.create({
+        data: {
+          novelPromotionProjectId: novelPromotionId,
+          episodeNumber: num,
+          name,
+          novelText: content,
+        },
+      });
+      episodeIds.push(created.id);
+    } catch (error) {
+      // 如果冲突，尝试使用下一个可用编号
+      if (error instanceof Error && error.message.includes("Unique constraint")) {
+        const fallbackNum = baseEpisodeNumber + episodeIds.length + 1;
+        const fallbackCreated = await prisma.novelPromotionEpisode.create({
+          data: {
+            novelPromotionProjectId: novelPromotionId,
+            episodeNumber: fallbackNum,
+            name: `${name} (重编号)`,
+            novelText: content,
+          },
+        });
+        episodeIds.push(fallbackCreated.id);
+      } else {
+        throw error;
+      }
+    }
   }
 
   return { episodeIds };
