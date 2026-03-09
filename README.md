@@ -18,12 +18,12 @@
   <a href="#-架构示意图--architecture">架构</a> •
   <a href="#-预览--preview">预览</a> •
   <a href="#-快速开始--quick-start">快速开始</a> •
+  <a href="#-通过-openclaw-ai-部署--deploy-with-openclaw-ai">AI部署</a> •
   <a href="#-文档--documentation">文档</a> •
   <a href="#-配置--configuration">配置</a> •
   <a href="#-流程--workflow">流程</a> •
   <a href="#-技术栈--tech-stack">技术栈</a> •
-  <a href="#-联系方式--contact">联系方式</a> •
-  <a href="#-致谢--acknowledgments">致谢</a>
+  <a href="#-联系方式--contact">联系方式</a>
 </p>
 
 ---
@@ -273,6 +273,181 @@ docker compose up -d
 | **宝塔面板安装指南** | 在 Linux 服务器使用宝塔面板部署 FlintStudio 的详细教程 | [BT_PANEL_INSTALL_GUIDE.md](docs/BT_PANEL_INSTALL_GUIDE.md) |
 | **更新日志** | 版本更新记录与新功能说明 | [CHANGELOG.md](CHANGELOG.md) |
 | **环境变量示例** | 所有支持的配置项说明 | [.env.example](.env.example) |
+
+---
+
+## 🤖 通过 OpenClaw AI 部署 · Deploy with OpenClaw AI
+
+> 懒得动手？让 AI 员工帮你搞定！OpenClaw（龙虾）是一款开源 AI Agent，可以像真人工程师一样帮你完成部署、排查问题、自动修复。
+> 
+> Too lazy to type commands? Let an AI employee handle it! OpenClaw is an open-source AI Agent that deploys, debugs, and fixes issues like a real engineer.
+
+---
+
+### 中文版：AI 员工一键部署（小白推荐）
+
+#### 第一步：安装 OpenClaw（龙虾 AI）
+
+OpenClaw 是一个能帮你执行任务的 AI 助手，相当于雇佣了一个 24/7 在线的运维工程师。
+
+**Windows/macOS 安装：**
+```bash
+# 需要 Node.js 18+，然后一键安装
+npm install -g openclaw
+
+# 验证安装
+openclaw --version
+```
+
+**国内用户安装（如果 npm 慢）：**
+```bash
+# 使用国内镜像安装
+npm install -g openclaw --registry=https://registry.npmmirror.com
+```
+
+#### 第二步：启动 OpenClaw 并配置 API
+
+```bash
+# 启动配置向导
+openclaw onboard
+```
+
+按提示操作：
+1. **选择模型**：推荐选择支持中文的模型（如 MiniMax、阿里云百炼、或 Claude）
+2. **输入 API Key**：从对应平台获取 API Key
+3. **选择权限**：首次使用建议选择 "沙盒模式"（Sandbox）
+
+#### 第三步：让 AI 员工部署 FlintStudio
+
+启动 OpenClaw 后，直接告诉它你的需求：
+
+```
+请帮我完成以下任务：
+
+1. 从 https://github.com/Flintcore/FlintStudio.git 克隆代码到 ~/FlintStudio
+2. 进入项目目录，复制 .env.example 为 .env
+3. 检查系统是否安装了 Docker，如果没有请提示我安装
+4. 使用 Docker Compose 启动所有服务（MySQL、Redis、App）
+5. 等待服务启动完成，然后告诉我访问地址 http://localhost:13000
+
+如果遇到任何错误，请自动尝试修复，或给出清晰的解决方案。
+```
+
+**更简单的说法（直接复制粘贴给 AI）：**
+```
+帮我部署 FlintStudio 项目。项目地址是 https://github.com/Flintcore/FlintStudio.git，用 Docker 启动。遇到报错你自己想办法解决。
+```
+
+#### 第四步：让 AI 帮你排查问题
+
+如果部署过程中出现问题，直接告诉 AI：
+
+```
+部署失败了，帮我看看错误日志，然后修复它。
+```
+
+或者指定具体问题：
+```
+Docker 构建时提示 "Cannot find module '@lib/workflow/visual-style'"，帮我修复这个问题。
+```
+
+```
+端口 13000 被占用了，帮我改成其他端口启动。
+```
+
+#### 常用命令示例
+
+| 你想让 AI 做的事 | 对 AI 说的话 |
+|----------------|-------------|
+| 检查服务状态 | "帮我检查 FlintStudio 是否正常运行，看看日志有没有报错" |
+| 重启服务 | "重启 FlintStudio 服务" |
+| 更新代码 | "拉取最新代码并重新部署" |
+| 备份数据 | "帮我备份 MySQL 数据库到 ~/backups" |
+| 查看配置 | "显示当前的 .env 配置（隐藏敏感信息）" |
+| 清理磁盘 | "清理 Docker 无用的镜像和容器，释放空间" |
+
+---
+
+### English: One-Click AI Deployment (Recommended for Beginners)
+
+#### Step 1: Install OpenClaw (Your AI Employee)
+
+OpenClaw is an AI assistant that executes tasks for you—like having a 24/7 DevOps engineer on call.
+
+**Windows/macOS Installation:**
+```bash
+# Requires Node.js 18+, then one-line install
+npm install -g openclaw
+
+# Verify installation
+openclaw --version
+```
+
+**Alternative for slow npm:**
+```bash
+npm install -g openclaw --registry=https://registry.npmjs.org
+```
+
+#### Step 2: Configure OpenClaw
+
+```bash
+# Launch setup wizard
+openclaw onboard
+```
+
+Follow the prompts:
+1. **Choose AI Model**: Select your preferred LLM (OpenAI, Claude, MiniMax, etc.)
+2. **Enter API Key**: Get your key from the provider's website
+3. **Set Permissions**: First-time users should select "Sandbox Mode"
+
+#### Step 3: Let AI Deploy FlintStudio
+
+Once OpenClaw is running, tell it what you need in plain English:
+
+```
+Please help me with the following tasks:
+
+1. Clone the repository from https://github.com/Flintcore/FlintStudio.git to ~/FlintStudio
+2. Enter the project directory and copy .env.example to .env
+3. Check if Docker is installed, prompt me to install if not
+4. Start all services using Docker Compose (MySQL, Redis, App)
+5. Wait for services to start and tell me the access URL http://localhost:13000
+
+If any errors occur, please attempt to fix them automatically or provide clear solutions.
+```
+
+**Even simpler (copy-paste this):**
+```
+Deploy the FlintStudio project for me. The repo is at https://github.com/Flintcore/FlintStudio.git. Use Docker to start it. Fix any errors that come up.
+```
+
+#### Step 4: Let AI Debug for You
+
+If deployment fails, just ask:
+
+```
+The deployment failed. Check the error logs and fix it for me.
+```
+
+Or be specific:
+```
+Docker build says "Cannot find module '@lib/workflow/visual-style'". Fix this.
+```
+
+```
+Port 13000 is already in use. Change to a different port.
+```
+
+#### Common Command Examples
+
+| What You Want | What to Tell AI |
+|--------------|----------------|
+| Check service status | "Check if FlintStudio is running properly and show me any errors in the logs" |
+| Restart services | "Restart FlintStudio services" |
+| Update code | "Pull latest code and redeploy" |
+| Backup data | "Backup MySQL database to ~/backups" |
+| View config | "Show current .env config (hide sensitive info)" |
+| Clean disk | "Clean up unused Docker images and containers to free space" |
 
 ---
 
