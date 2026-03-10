@@ -2,6 +2,12 @@ import { getUserApiConfig } from "@/lib/api-config";
 import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 import { withRetry, IMAGE_RETRY_OPTIONS } from "@/lib/utils/retry";
 
+/** 检查是否为本地端点（不需要 API Key） */
+function isLocalEndpoint(baseUrl: string): boolean {
+  const lower = baseUrl.toLowerCase();
+  return lower.includes("localhost") || lower.includes("127.0.0.1");
+}
+
 /** 调用用户配置的图像 API（OpenAI 兼容 /v1/images/generations），返回图片 URL 或 base64 */
 export async function generateImage(opts: {
   userId: string;
@@ -10,7 +16,12 @@ export async function generateImage(opts: {
   model?: string;
 }): Promise<{ url?: string; b64?: string }> {
   const config = await getUserApiConfig(opts.userId, "image");
-  if (!config?.baseUrl || !config?.apiKey) {
+  if (!config?.baseUrl) {
+    throw new Error("请先在设置中配置图像生成 Base URL 和 API Key");
+  }
+  // 本地端点不需要 API Key
+  const apiKeyRequired = !isLocalEndpoint(config.baseUrl);
+  if (apiKeyRequired && !config.apiKey) {
     throw new Error("请先在设置中配置图像生成 Base URL 和 API Key");
   }
 
@@ -19,12 +30,15 @@ export async function generateImage(opts: {
 
   return withRetry(
     async () => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (config.apiKey) {
+        headers.Authorization = `Bearer ${config.apiKey}`;
+      }
       const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.imagesGenerations}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model,
           prompt: opts.prompt.slice(0, 4000),

@@ -2,6 +2,12 @@ import { getUserApiConfig } from "@/lib/api-config";
 import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 import { withRetry, LLM_RETRY_OPTIONS } from "@/lib/utils/retry";
 
+/** 检查是否为本地端点（不需要 API Key） */
+function isLocalEndpoint(baseUrl: string): boolean {
+  const lower = baseUrl.toLowerCase();
+  return lower.includes("localhost") || lower.includes("127.0.0.1");
+}
+
 /** 调用用户配置的 LLM（OpenAI 兼容 /v1/chat/completions），返回 JSON 解析结果 */
 export async function llmJson<T = Record<string, unknown>>(
   userId: string,
@@ -10,7 +16,12 @@ export async function llmJson<T = Record<string, unknown>>(
   options?: { model?: string; temperature?: number }
 ): Promise<T> {
   const config = await getUserApiConfig(userId, "llm");
-  if (!config?.baseUrl || !config?.apiKey) {
+  if (!config?.baseUrl) {
+    throw new Error("请先在设置中配置 LLM Base URL 和 API Key");
+  }
+  // 本地端点不需要 API Key
+  const apiKeyRequired = !isLocalEndpoint(config.baseUrl);
+  if (apiKeyRequired && !config.apiKey) {
     throw new Error("请先在设置中配置 LLM Base URL 和 API Key");
   }
 
@@ -21,12 +32,15 @@ export async function llmJson<T = Record<string, unknown>>(
   // 使用重试机制包装请求
   return withRetry(
     async () => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (config.apiKey) {
+        headers.Authorization = `Bearer ${config.apiKey}`;
+      }
       const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.chatCompletions}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model,
           messages: [
@@ -69,7 +83,12 @@ export async function llmChat(
   options?: { model?: string; temperature?: number; maxTokens?: number }
 ): Promise<string> {
   const config = await getUserApiConfig(userId, "llm");
-  if (!config?.baseUrl || !config?.apiKey) {
+  if (!config?.baseUrl) {
+    throw new Error("请先在设置中配置 LLM Base URL 和 API Key");
+  }
+  // 本地端点不需要 API Key
+  const apiKeyRequired = !isLocalEndpoint(config.baseUrl);
+  if (apiKeyRequired && !config.apiKey) {
     throw new Error("请先在设置中配置 LLM Base URL 和 API Key");
   }
 
@@ -87,12 +106,15 @@ export async function llmChat(
       };
       if (maxTokens) body.max_tokens = maxTokens;
 
+      const reqHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (config.apiKey) {
+        reqHeaders.Authorization = `Bearer ${config.apiKey}`;
+      }
       const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.chatCompletions}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
+        headers: reqHeaders,
         body: JSON.stringify(body),
       });
 

@@ -31,6 +31,13 @@ function trim(s: unknown): string {
   return typeof s === "string" ? s.trim() : "";
 }
 
+/** 检查是否为本地端点（不需要 API Key） */
+function isLocalEndpoint(baseUrl: string): boolean {
+  if (!baseUrl) return false;
+  const lower = baseUrl.toLowerCase();
+  return lower.includes("localhost") || lower.includes("127.0.0.1");
+}
+
 function parseCustomProvidersPayload(raw: string | null | undefined): CustomProvidersPayload {
   if (!raw) return { providers: [], defaults: {} };
   try {
@@ -89,48 +96,60 @@ export async function getUserApiConfig(
   const defaultId = defaults?.[type];
   if (defaultId && providers.length > 0) {
     const provider = providers.find((p) => p.id === defaultId);
-    if (provider && provider.type === type && provider.baseUrl && provider.apiKey) {
-      return {
-        baseUrl: provider.baseUrl,
-        apiKey: provider.apiKey,
-        model: provider.model ?? undefined,
-      };
+    if (provider && provider.type === type && provider.baseUrl) {
+      // 本地端点不需要 API Key
+      const apiKeyRequired = !isLocalEndpoint(provider.baseUrl);
+      if (!apiKeyRequired || provider.apiKey) {
+        return {
+          baseUrl: provider.baseUrl,
+          apiKey: provider.apiKey || "",
+          model: provider.model ?? undefined,
+        };
+      }
     }
   }
 
   switch (type) {
-    case "llm":
-      return prefs.llmBaseUrl && prefs.llmApiKey
-        ? {
-            baseUrl: prefs.llmBaseUrl,
-            apiKey: prefs.llmApiKey,
-            model: prefs.analysisModel ?? undefined,
-          }
-        : null;
-    case "image":
-      return prefs.imageBaseUrl && prefs.imageApiKey
-        ? {
-            baseUrl: prefs.imageBaseUrl,
-            apiKey: prefs.imageApiKey,
-            model: prefs.storyboardModel ?? undefined,
-          }
-        : null;
-    case "voice":
-      return prefs.ttsBaseUrl && prefs.ttsApiKey
-        ? {
-            baseUrl: prefs.ttsBaseUrl,
-            apiKey: prefs.ttsApiKey,
-            model: undefined,
-          }
-        : null;
-    case "video":
-      return prefs.videoBaseUrl && prefs.videoApiKey
-        ? {
-            baseUrl: prefs.videoBaseUrl,
-            apiKey: prefs.videoApiKey,
-            model: prefs.videoModel ?? undefined,
-          }
-        : null;
+    case "llm": {
+      if (!prefs.llmBaseUrl) return null;
+      const apiKeyRequired = !isLocalEndpoint(prefs.llmBaseUrl);
+      if (apiKeyRequired && !prefs.llmApiKey) return null;
+      return {
+        baseUrl: prefs.llmBaseUrl,
+        apiKey: prefs.llmApiKey || "",
+        model: prefs.analysisModel ?? undefined,
+      };
+    }
+    case "image": {
+      if (!prefs.imageBaseUrl) return null;
+      const apiKeyRequired = !isLocalEndpoint(prefs.imageBaseUrl);
+      if (apiKeyRequired && !prefs.imageApiKey) return null;
+      return {
+        baseUrl: prefs.imageBaseUrl,
+        apiKey: prefs.imageApiKey || "",
+        model: prefs.storyboardModel ?? undefined,
+      };
+    }
+    case "voice": {
+      if (!prefs.ttsBaseUrl) return null;
+      const apiKeyRequired = !isLocalEndpoint(prefs.ttsBaseUrl);
+      if (apiKeyRequired && !prefs.ttsApiKey) return null;
+      return {
+        baseUrl: prefs.ttsBaseUrl,
+        apiKey: prefs.ttsApiKey || "",
+        model: undefined,
+      };
+    }
+    case "video": {
+      if (!prefs.videoBaseUrl) return null;
+      const apiKeyRequired = !isLocalEndpoint(prefs.videoBaseUrl);
+      if (apiKeyRequired && !prefs.videoApiKey) return null;
+      return {
+        baseUrl: prefs.videoBaseUrl,
+        apiKey: prefs.videoApiKey || "",
+        model: prefs.videoModel ?? undefined,
+      };
+    }
     default:
       return null;
   }

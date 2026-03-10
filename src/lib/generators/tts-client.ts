@@ -4,6 +4,12 @@ import path from "path";
 import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 import { withRetry } from "@/lib/utils/retry";
 
+/** 检查是否为本地端点（不需要 API Key） */
+function isLocalEndpoint(baseUrl: string): boolean {
+  const lower = baseUrl.toLowerCase();
+  return lower.includes("localhost") || lower.includes("127.0.0.1");
+}
+
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
 
@@ -32,7 +38,12 @@ export async function generateSpeech(opts: {
   voiceLineId: string;
 }): Promise<{ audioUrl: string }> {
   const config = await getUserApiConfig(opts.userId, "voice");
-  if (!config?.baseUrl || !config?.apiKey) {
+  if (!config?.baseUrl) {
+    throw new Error("请先在设置中配置语音合成 Base URL 和 API Key");
+  }
+  // 本地端点不需要 API Key
+  const apiKeyRequired = !isLocalEndpoint(config.baseUrl);
+  if (apiKeyRequired && !config.apiKey) {
     throw new Error("请先在设置中配置语音合成 Base URL 和 API Key");
   }
 
@@ -40,12 +51,15 @@ export async function generateSpeech(opts: {
 
   return withRetry(
     async () => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (config.apiKey) {
+        headers.Authorization = `Bearer ${config.apiKey}`;
+      }
       const res = await fetch(`${base}${OPENAI_COMPAT_PATHS.audioSpeech}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model: "tts-1",
           voice: opts.voice || "alloy",
