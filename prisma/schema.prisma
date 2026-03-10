@@ -291,6 +291,8 @@ model NovelPromotionPanel {
   imageMediaId String?
   videoUrl     String?                  @db.Text
   duration     Float?
+  // 扩展元数据（JSON格式）：存储performance、shotType、cameraMove、lighting、mood等
+  metadata     String?                  @db.Text
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                 @updatedAt
   storyboard   NovelPromotionStoryboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
@@ -307,6 +309,14 @@ model NovelPromotionVoiceLine {
   lineIndex     Int
   speaker       String
   content       String                @db.Text
+  // 配音类型：对白/旁白/内心独白/群声
+  lineType      String?               @default("对白")
+  // 情绪标签
+  emotion       String?
+  // 语气提示（用于指导TTS）
+  tone          String?
+  // 音效/配乐标注
+  audioNote     String?               @db.Text
   voiceId       String?
   audioUrl      String?               @db.Text
   audioMediaId  String?
