@@ -785,3 +785,9 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
   <strong>如果这个项目对你有帮助，欢迎 Star ⭐</strong><br />
   <strong>If this project helps you, give it a Star ⭐</strong>
 </p>
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/image?repos=flintcore/FlintStudio&type=date&legend=top-left)](https://www.star-history.com/?repos=flintcore%2FFlintStudio&type=date&legend=top-left)
