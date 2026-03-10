@@ -4,6 +4,7 @@ import {
   VOICE_EXTRACT_SYSTEM,
   buildVoiceExtractUserPrompt,
 } from "@/lib/workflow/prompts/voice-extract";
+import { getSystemPrompt } from "@/lib/workflow/prompts/get-custom-prompt";
 
 export type VoiceLineSpec = { speaker: string; content: string };
 export type VoiceExtractResult = { lines: VoiceLineSpec[] };
@@ -16,9 +17,10 @@ export async function runVoiceExtract(opts: {
   const { userId, episodeId, clipsContent } = opts;
   if (clipsContent.length === 0) return { lineIds: [] };
 
+  const systemPrompt = await getSystemPrompt(userId, "voiceExtractSystem", VOICE_EXTRACT_SYSTEM);
   const json = await llmJson<VoiceExtractResult>(
     userId,
-    VOICE_EXTRACT_SYSTEM,
+    systemPrompt,
     buildVoiceExtractUserPrompt(clipsContent),
     { temperature: 0.2 }
   );

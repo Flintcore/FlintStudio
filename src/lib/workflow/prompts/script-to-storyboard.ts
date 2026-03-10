@@ -74,9 +74,17 @@ import { getVisualStyleById } from "../visual-style";
 
 /** 若指定画风，在 system 中追加统一风格说明，使所有 imagePrompt 一致符合该风格 */
 export function buildScriptToStoryboardSystem(visualStyleId?: string | null): string {
+  return buildScriptToStoryboardSystemWithStyle(SCRIPT_TO_STORYBOARD_SYSTEM, visualStyleId);
+}
+
+/** 使用自定义基础提示词构建分镜系统提示词 */
+export function buildScriptToStoryboardSystemWithStyle(
+  basePrompt: string,
+  visualStyleId?: string | null
+): string {
   const style = getVisualStyleById(visualStyleId);
-  if (!style || style.id === "default") return SCRIPT_TO_STORYBOARD_SYSTEM;
-  return `${SCRIPT_TO_STORYBOARD_SYSTEM}
+  if (!style || style.id === "default") return basePrompt;
+  return `${basePrompt}
 
 ## 本片统一视觉风格
 ${style.descriptionForLlm}

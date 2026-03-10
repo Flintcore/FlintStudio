@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
 import { llmJson } from "@/lib/llm/client";
 import {
-  buildScriptToStoryboardSystem,
+  SCRIPT_TO_STORYBOARD_SYSTEM,
+  buildScriptToStoryboardSystemWithStyle,
   buildScriptToStoryboardUserPrompt,
 } from "@/lib/workflow/prompts/script-to-storyboard";
+import { getSystemPrompt } from "@/lib/workflow/prompts/get-custom-prompt";
 
 export type PanelSpec = {
   description?: string;
@@ -22,7 +24,8 @@ export async function runScriptToStoryboard(opts: {
 }): Promise<{ panelIds: string[] }> {
   const { userId, clipId, clipContent, visualStyleId } = opts;
 
-  const systemPrompt = buildScriptToStoryboardSystem(visualStyleId);
+  const customPrompt = await getSystemPrompt(userId, "scriptToStoryboardSystem", SCRIPT_TO_STORYBOARD_SYSTEM);
+  const systemPrompt = buildScriptToStoryboardSystemWithStyle(customPrompt, visualStyleId);
 
   const json = await llmJson<ScriptToStoryboardResult>(
     userId,

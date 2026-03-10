@@ -4,6 +4,7 @@ import {
   STORY_TO_SCRIPT_SYSTEM,
   buildStoryToScriptUserPrompt,
 } from "@/lib/workflow/prompts/story-to-script";
+import { getSystemPrompt } from "@/lib/workflow/prompts/get-custom-prompt";
 
 export type StoryToScriptClip = {
   summary: string;
@@ -23,9 +24,10 @@ export async function runStoryToScript(opts: {
 }): Promise<{ clipIds: string[] }> {
   const { userId, episodeId, episodeContent, characterNames, locationNames } = opts;
 
+  const systemPrompt = await getSystemPrompt(userId, "storyToScriptSystem", STORY_TO_SCRIPT_SYSTEM);
   const json = await llmJson<StoryToScriptResult>(
     userId,
-    STORY_TO_SCRIPT_SYSTEM,
+    systemPrompt,
     buildStoryToScriptUserPrompt(episodeContent, characterNames, locationNames),
     { temperature: 0.4 }
   );

@@ -2,6 +2,7 @@ import { getCurrentSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCustomProvidersPayload } from "@/lib/api-config";
 import { ApiConfigForm } from "./api-config-form";
+import { PromptConfigForm } from "./prompt-config-form";
 import { AppHeader } from "../components/app-header";
 
 export default async function SettingsPage() {
@@ -22,7 +23,7 @@ export default async function SettingsPage() {
         <p className="mt-2 text-sm text-[var(--muted)]">
           所有 AI 服务均需自行配置 API，无厂商锁定。支持多 API、多模型接入，可添加多个提供商并选择默认。
         </p>
-        <div className="mt-8">
+        <div className="mt-8 space-y-6">
           <ApiConfigForm
             userId={session.user.id}
             initial={{
@@ -41,6 +42,7 @@ export default async function SettingsPage() {
               defaults: defaults ?? {},
             }}
           />
+          <PromptConfigForm />
         </div>
       </main>
     </div>

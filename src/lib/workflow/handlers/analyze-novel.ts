@@ -3,7 +3,8 @@ import { llmJson } from "@/lib/llm/client";
 import {
   ANALYZE_NOVEL_SYSTEM,
   buildAnalyzeNovelUserPrompt,
-} from "@/lib/workflow/analyze-novel-prompt";
+} from "@/lib/workflow/prompts/analyze-novel";
+import { getSystemPrompt } from "@/lib/workflow/prompts/get-custom-prompt";
 
 export type AnalyzeNovelResult = {
   characters: Array<{ name: string; description?: string }>;
@@ -19,9 +20,10 @@ export async function runAnalyzeNovel(opts: {
 }): Promise<{ episodeIds: string[] }> {
   const { userId, projectId, novelPromotionId, novelText } = opts;
 
+  const systemPrompt = await getSystemPrompt(userId, "analyzeNovelSystem", ANALYZE_NOVEL_SYSTEM);
   const json = await llmJson<AnalyzeNovelResult>(
     userId,
-    ANALYZE_NOVEL_SYSTEM,
+    systemPrompt,
     buildAnalyzeNovelUserPrompt(novelText),
     { temperature: 0.3 }
   );

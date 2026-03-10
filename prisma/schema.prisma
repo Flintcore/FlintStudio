@@ -81,6 +81,8 @@ model UserPreference {
   videoApiKey  String?  @db.Text
   // 自定义提供商 JSON: [{ id, name, baseUrl, apiKeyEncrypted, type: llm|image|video|tts }]
   customProviders String? @db.Text
+  // 自定义提示词 JSON: { analyzeNovelSystem?, storyToScriptSystem?, scriptToStoryboardSystem?, voiceExtractSystem? }
+  customPrompts   String? @db.Text
   // 默认模型选择
   analysisModel   String?
   characterModel  String?
