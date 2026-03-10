@@ -7,6 +7,28 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.31] - 2026-03-10
+
+### 中文
+1. **提示词系统全面优化**: 参考 AI 导演工作流优化四个阶段的 System Prompt
+   - 剧本分析：强化角色视觉设定、场景空间信息提取
+   - 分场：明确分场原则，规范摘要和场景命名格式
+   - 分镜：增加表演调度深化（面部肌肉组、三锚点肢体法）、光影色彩转译、景别运镜词典
+   - 配音提取：增加情绪标注、语气提示、音效标注
+2. **自定义提示词**: 支持在设置中心自定义四个阶段的 System Prompt
+3. **本地模型优化**: 本地端点（localhost/127.0.0.1）无需配置 API Key
+4. **自动创建项目修复**: 改为 POST 接口，防止浏览器预加载意外创建项目
+5. **数据模型扩展**: Panel 新增 metadata 字段，VoiceLine 新增 lineType/emotion/tone/audioNote 字段
+
+### English
+1. **Prompt System Optimization**: Enhanced System Prompts for all 4 workflow phases referencing AI director workflow best practices
+2. **Custom Prompts**: Support customizing System Prompts in settings
+3. **Local Model Improvements**: Local endpoints don't require API Key
+4. **Auto-create Project Fix**: Changed to POST endpoint to prevent accidental project creation
+5. **Data Model Extensions**: Added metadata to Panel, added lineType/emotion/tone/audioNote to VoiceLine
+
+---
+
 ## [Beta 0.30] - 2026-03-09
 
 ### 中文
