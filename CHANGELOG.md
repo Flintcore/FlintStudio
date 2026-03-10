@@ -7,29 +7,31 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.30] - 2026-03-09
+
 ### 中文
-1. **OpenClaw 远程控制**: 新增 `flintstudio-control` Skill，支持通过 Telegram/飞书等 IM 平台远程控制 FlintStudio
+1. **本地模型支持**: 新增对接 Ollama 和 ComfyUI 本地模型
+   - Ollama: 本地 LLM 支持（llama3.2, qwen2.5 等）
+   - ComfyUI: 本地 Stable Diffusion 图像生成
+   - 零成本、隐私保护、无限生成
+2. **OpenClaw 远程控制**: 新增 `flintstudio-control` Skill，支持通过 Telegram/飞书等 IM 平台远程控制 FlintStudio
    - 创建项目、启动工作流、检查状态、获取结果
    - 提供 Telegram Bot 和飞书 Bot 完整示例代码
-2. **OpenClaw API 端点**: 新增 7 个 REST API 端点供 OpenClaw 调用
-   - `/api/openclaw/status` - 系统状态
-   - `/api/openclaw/projects` - 项目管理
-   - `/api/openclaw/projects/[id]/episodes` - 剧集管理
-   - `/api/openclaw/workflow/run` - 启动工作流
-   - `/api/openclaw/workflow/status/[runId]` - 查询状态
-   - `/api/openclaw/config` - 配置管理
-3. **文档清理**: 删除冗余文档，只保留 CHANGELOG.md 和 README.md
+3. **OpenClaw API 端点**: 新增 7 个 REST API 端点供 OpenClaw 调用
+4. **文档精简**: 删除所有冗余文档，仅保留 CHANGELOG.md 和 README.md
 
 ### English
-1. **OpenClaw Remote Control**: Added `flintstudio-control` Skill for remote control via Telegram/Lark IM platforms
-   - Create projects, start workflows, check status, get results
-   - Complete Telegram Bot and Lark Bot examples included
-2. **OpenClaw API Endpoints**: Added 7 REST API endpoints for OpenClaw integration
-3. **Documentation Cleanup**: Removed redundant docs, keeping only CHANGELOG.md and README.md
+1. **Local Model Support**: Added support for Ollama and ComfyUI local models
+   - Ollama: Local LLM support (llama3.2, qwen2.5, etc.)
+   - ComfyUI: Local Stable Diffusion image generation
+   - Zero cost, privacy protection, unlimited generation
+2. **OpenClaw Remote Control**: Added `flintstudio-control` Skill for remote control via Telegram/Lark IM platforms
+3. **OpenClaw API Endpoints**: Added 7 REST API endpoints for OpenClaw integration
+4. **Documentation Cleanup**: Removed all redundant docs, keeping only CHANGELOG.md and README.md
 
 ---
 
-## [Beta 0.20] - 2026-03-09
+## [Beta 0.20] - 2026-03-08
 
 ### 中文
 1. **OpenClaw Skill 增强**: 新增完整的 AI 控制功能，支持通过 OpenClaw 龙虾 AI 部署、启动、停止、更新、备份 FlintStudio；新增 config、shell、clean、doctor、port、restart、restore 等命令
