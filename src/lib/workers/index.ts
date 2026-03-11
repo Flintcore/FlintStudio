@@ -34,7 +34,7 @@ import { generateImage } from "@/lib/generators/image-client";
 import { generateSpeech } from "@/lib/generators/tts-client";
 import { runVoiceExtract } from "@/lib/workflow/handlers/voice-extract";
 import { composeEpisodeVideo } from "@/lib/video/compose-episode";
-import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
+import { getImagePromptSuffix } from "../workflow/visual-style";
 import path from "path";
 
 const concurrency = {
