@@ -14,6 +14,8 @@ services:
     command:
       - "--default-authentication-plugin=mysql_native_password"
       - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -pflintstudio"]
       interval: 5s
@@ -29,7 +31,7 @@ services:
       - "16379:6379"
     volumes:
       - redis_data:/data
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -40,9 +42,7 @@ services:
   app:
     build:
       context: .
-      # 国内用户遇到 APK 下载失败时，取消下方注释使用阿里云镜像
-      # args:
-      #   MIRROR: cn
+      dockerfile: Dockerfile
     container_name: flintstudio-app
     restart: unless-stopped
     environment:
@@ -53,10 +53,10 @@ services:
       REDIS_PASSWORD: ""
       STORAGE_TYPE: local
       NEXTAUTH_URL: "http://localhost:13000"
-      NEXTAUTH_SECRET: "flintstudio-docker-secret-change-in-production"
-      CRON_SECRET: "flintstudio-cron-secret"
-      INTERNAL_TASK_TOKEN: "flintstudio-task-token"
-      API_ENCRYPTION_KEY: "flintstudio-encryption-key-32bytes!!"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-flintstudio-docker-secret-change-in-production}
+      CRON_SECRET: ${CRON_SECRET:-flintstudio-cron-secret}
+      INTERNAL_TASK_TOKEN: ${INTERNAL_TASK_TOKEN:-flintstudio-task-token}
+      API_ENCRYPTION_KEY: ${API_ENCRYPTION_KEY:-flintstudio-encryption-key-32bytes!!}
       QUEUE_CONCURRENCY_IMAGE: "4"
       QUEUE_CONCURRENCY_VIDEO: "2"
       QUEUE_CONCURRENCY_VOICE: "4"
@@ -70,16 +70,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "
-        npx prisma db push --skip-generate &&
-        (sleep 3 && echo '' &&
-        echo '========================================' &&
-        echo '  FlintStudio is ready!' &&
-        echo '  http://localhost:13000' &&
-        echo '========================================') &
-        npm run start
-      "
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   mysql_data:

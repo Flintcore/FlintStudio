@@ -1,30 +1,43 @@
+# ============================================
+# FlintStudio Dockerfile - 多阶段构建优化版
+# ============================================
+
+# 基础阶段
 FROM node:20-alpine AS base
 
-# 支持通过构建参数选择 APK 镜像源（默认官方，国内用户可传入 MIRROR=cn）
-ARG MIRROR=official
-RUN if [ "$MIRROR" = "cn" ]; then \
-        echo "Using China mirror (阿里云)..." && \
-        sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories; \
-    elif [ "$MIRROR" = "global" ]; then \
-        echo "Using global mirror..." && \
-        sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
-    else \
-        echo "Using official mirror..."; \
-    fi && \
-    apk add --no-cache ffmpeg
+# 安装必要依赖
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
+# 依赖安装阶段 - 优化缓存
+FROM base AS deps
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
+# 构建阶段
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# 容器内无 .env（被 .dockerignore 排除），Worker 的 tsx --env-file=.env 需要文件存在；环境变量由 docker-compose 注入
-RUN touch .env
-RUN npx prisma generate
-RUN npm run build
 
+# 创建空 .env 文件（环境变量由 docker-compose 注入）
+RUN touch .env
+
+# 生成 Prisma Client 和构建
+RUN npx prisma generate && npm run build
+
+# 生产阶段 - 最小化镜像
+FROM base AS runner
 ENV NODE_ENV=production
+
+# 仅复制必要文件
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate 2>/dev/null || true && npm run start"]
+# 启动命令：数据库迁移后启动
+CMD ["sh", "-c", "npx prisma db push --skip-generate 2>/dev/null || true && node server.js"]

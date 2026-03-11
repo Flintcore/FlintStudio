@@ -7,6 +7,26 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.32] - 2026-03-11
+
+### 中文
+1. **构建优化**: 修复模块路径引用问题，优化 Docker 多阶段构建
+2. **健康检查**: 新增 `/api/health` 端点，支持数据库和 Redis 健康检测
+3. **依赖清理**: 移除未使用的 `openai` 和 `react-hot-toast` 依赖
+4. **日志系统**: 新增结构化日志工具 `src/lib/logger.ts`
+5. **错误处理**: 新增统一错误处理工具 `src/lib/utils/error-handler.ts`
+6. **Docker 优化**: 启用 standalone 输出模式，减小镜像体积
+
+### English
+1. **Build Optimization**: Fixed module path references, optimized Docker multi-stage builds
+2. **Health Check**: Added `/api/health` endpoint with database and Redis health checks
+3. **Dependency Cleanup**: Removed unused `openai` and `react-hot-toast` dependencies
+4. **Logging System**: Added structured logging utility `src/lib/logger.ts`
+5. **Error Handling**: Added unified error handling utility `src/lib/utils/error-handler.ts`
+6. **Docker Optimization**: Enabled standalone output mode for smaller image size
+
+---
+
 ## [Beta 0.31] - 2026-03-10
 
 ### 中文
