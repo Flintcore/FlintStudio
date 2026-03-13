@@ -180,18 +180,35 @@ export function WorkflowRunForm({
         <p className="mt-0.5 text-xs text-[var(--muted)]">
           选择后，分镜与出图将统一采用该风格
         </p>
-        <select
-          value={visualStyle}
-          onChange={(e) => setVisualStyle(e.target.value)}
-          className="input-base mt-2 w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-muted)] disabled:opacity-50"
-          disabled={loading}
-        >
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {VISUAL_STYLES.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.labelZh}
-            </option>
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setVisualStyle(s.id)}
+              disabled={loading}
+              className={`relative rounded-xl border-2 p-3 text-left transition-all hover:scale-[1.02] disabled:opacity-50 ${
+                visualStyle === s.id
+                  ? "border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent-muted)]"
+                  : "border-[var(--border)] bg-[var(--background)] hover:border-[var(--accent)]/50"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <span className={`text-sm font-medium ${visualStyle === s.id ? "text-[var(--accent)]" : "text-[var(--foreground)]"}`}>
+                  {s.labelZh}
+                </span>
+                {visualStyle === s.id && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-white text-xs">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)] line-clamp-2">
+                {s.descriptionForLlm.slice(0, 30)}…
+              </p>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       <textarea
