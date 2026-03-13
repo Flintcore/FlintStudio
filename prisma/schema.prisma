@@ -89,6 +89,10 @@ model UserPreference {
   locationModel   String?
   storyboardModel String?
   videoModel      String?
+  // 新增：默认LLM模型（自适应系统使用）
+  defaultLlmModel String? @default("gpt-4o-mini")
+  // 新增：自定义模型配置 JSON
+  customModels    String? @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -431,4 +435,24 @@ model MediaObject {
   voiceLineAudios           NovelPromotionVoiceLine[] @relation("VoiceLineAudioMedia")
 
   @@map("media_objects")
+}
+
+
+// ==================== 自我修复 Agent ====================
+model HealingIssue {
+  id          String   @id @default(uuid())
+  type        String   // llm_error, json_parse_error, validation_error, timeout, rate_limit, etc.
+  severity    String   // info, warning, error, critical
+  message     String   @db.Text
+  context     String?  @db.Text  // JSON: { taskId?, runId?, userId, modelId?, originalError?, stackTrace?, input?, output? }
+  status      String   @default("detected")  // detected, analyzing, fixing, resolved, failed, escalated
+  attempts    Int      @default(0)
+  fixResult   String?  @db.Text  // JSON: { success, strategy, actionTaken, cost?, timeMs }
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("healing_issues")
 }

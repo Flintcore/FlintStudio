@@ -1,6 +1,6 @@
 {
   "name": "flint-studio",
-  "version": "0.1.0",
+  "version": "0.40.0-beta",
   "private": true,
   "description": "FlintStudio 开源版 - 全 API 可配置的 AI 影视自动化多 Agent 协同平台",
   "engines": {
@@ -16,7 +16,8 @@
     "start:next": "next start -H 0.0.0.0",
     "start:worker": "tsx --env-file=.env src/lib/workers/index.ts",
     "lint": "eslint .",
-    "clean": "rimraf .next"
+    "clean": "rimraf .next",
+    "check:docker": "node scripts/check-docker.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

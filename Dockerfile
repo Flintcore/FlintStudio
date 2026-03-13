@@ -24,7 +24,8 @@ COPY . .
 RUN touch .env
 
 # 生成 Prisma Client 和构建
-RUN npx prisma generate && npm run build
+# 确保 public 目录存在（即使为空），避免 runner 阶段复制失败
+RUN mkdir -p public && npx prisma generate && npm run build
 
 # 生产阶段 - 最小化镜像
 FROM base AS runner

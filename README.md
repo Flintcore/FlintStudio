@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://img.shields.io/badge/FlintStudio-Open%20Source-amber?style=for-the-badge" alt="FlintStudio" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/Node-18%2B-green?style=for-the-badge" alt="Node" />
@@ -11,6 +11,10 @@
 <p align="center">
   <strong>全 API 可配置 · 多 Agent 自动协同 · 无厂商锁定</strong><br />
   <strong>Fully configurable APIs · Multi-agent automation · No vendor lock-in</strong>
+</p>
+
+<p align="center">
+  <img src="docs/poster-beta40.png" alt="FlintStudio Beta 0.40" width="600" />
 </p>
 
 <p align="center">
@@ -184,7 +188,11 @@ cd FlintStudio
 #### 第四步：用 Docker 启动服务
 
 1. 确保 **Docker Desktop 已运行**（托盘/菜单栏有 Docker 图标）。
-2. 在终端中确认当前在 `FlintStudio` 目录（可再执行一次 `cd FlintStudio`），然后执行：
+2. **（推荐）运行预检脚本**，自动检查环境是否就绪：
+   ```bash
+   npm run check:docker
+   ```
+3. 在终端中确认当前在 `FlintStudio` 目录（可再执行一次 `cd FlintStudio`），然后执行：
 
 ```bash
 docker compose up -d
@@ -246,16 +254,20 @@ cd FlintStudio
 #### Step 4: Start the app with Docker
 
 1. Make sure **Docker Desktop is running** (Docker icon in tray/menu bar).
-2. In the terminal, ensure you’re in the `FlintStudio` folder (run `cd FlintStudio` if needed), then run:
+2. **(Recommended) Run the pre-check script** to verify your environment:
+   ```bash
+   npm run check:docker
+   ```
+3. In the terminal, ensure you're in the `FlintStudio` folder (run `cd FlintStudio` if needed), then run:
 
 ```bash
 docker compose up -d
 ```
 
-3. The **first run** may take a few minutes while images are downloaded and the app is built. When you see something like “flintstudio-app … Started” and no errors, you’re good.
-4. If you see port-in-use or other errors, run `docker compose down` and try `docker compose up -d` again.
+4. The **first run** may take a few minutes while images are downloaded and the app is built. When you see something like “flintstudio-app … Started” and no errors, you’re good.
+5. If you see port-in-use or other errors, run `docker compose down` and try `docker compose up -d` again.
 
-#### Step 5: Open FlintStudio in your browser
+#### Step 6: Open FlintStudio in your browser
 
 1. In your browser, go to: **http://localhost:13000**.
 2. If the page loads, deployment worked. **You’ll land on the workspace directly** (no login in current version).
@@ -751,6 +763,145 @@ See [.env.example](.env.example). Key vars: `DATABASE_URL`, `REDIS_HOST`/`REDIS_
 - If the QR code has expired, please open a [GitHub Issue](https://github.com/Flintcore/FlintStudio/issues).
 
 *（请将微信群二维码图片保存为 `docs/wechat-group.png` / Please add your WeChat group QR code as `docs/wechat-group.png`.)*
+
+---
+
+## 🛠️ 故障排除 · Troubleshooting
+
+### Docker 构建问题 / Docker Build Issues
+
+#### 1. 错误: "/app/public" not found
+**现象**: 构建时提示 `failed to calculate checksum: "/app/public": not found`
+
+**解决方案**: 
+```bash
+# 确保使用的是最新 Dockerfile（已修复此问题）
+git pull origin main
+
+# 重新构建
+docker compose down
+docker compose up -d --build
+```
+
+**技术原因**: Next.js standalone 模式在某些情况下不会自动创建 public 目录，需要在构建前手动创建。
+
+---
+
+#### 2. 错误: Cannot find module '@swc/helpers'
+**现象**: `npm error Missing: @swc/helpers@0.5.19 from lock file`
+
+**解决方案**:
+```bash
+# 删除 lock 文件并重新安装
+rm package-lock.json
+npm install
+
+# 然后重新构建
+docker compose up -d --build
+```
+
+---
+
+#### 3. 错误: Type 'ReviewResult' is not assignable to type 'InputJsonValue'
+**现象**: TypeScript 类型错误导致构建失败
+
+**解决方案**: 
+此问题已在最新代码中修复。请更新代码：
+```bash
+git pull origin main
+docker compose up -d --build
+```
+
+---
+
+#### 4. Mac / ARM 平台构建失败
+**现象**: 在 M1/M2/M3 Mac 或 ARM 服务器上构建失败
+
+**解决方案**:
+```bash
+# 清理 Docker 构建缓存
+docker builder prune -f
+
+# 使用 --no-cache 强制重新构建
+docker compose build --no-cache
+docker compose up -d
+```
+
+---
+
+#### 5. 通用诊断步骤
+
+运行诊断脚本检查环境：
+```bash
+npm run check:docker
+```
+
+或手动检查：
+```bash
+# 1. 检查必要文件是否存在
+ls -la package.json package-lock.json Dockerfile docker-compose.yml
+
+# 2. 检查 .env 是否配置
+cp .env.example .env
+# 编辑 .env 填写必要配置
+
+# 3. 清理并重试
+docker compose down
+docker system prune -f  # 谨慎：这会删除所有未使用的容器/镜像
+docker compose up -d --build
+```
+
+---
+
+### 运行问题 / Runtime Issues
+
+#### 1. 无法连接到数据库
+**现象**: 应用启动但无法访问，日志显示数据库连接错误
+
+**解决方案**:
+```bash
+# 检查 MySQL 容器状态
+docker compose ps
+
+# 查看 MySQL 日志
+docker compose logs mysql
+
+# 重启服务
+docker compose restart mysql app
+```
+
+---
+
+#### 2. Worker 不处理任务
+**现象**: 任务一直显示 "pending" 状态
+
+**检查步骤**:
+```bash
+# 查看 Worker 日志
+docker compose logs -f app
+
+# 检查 Redis 连接
+docker compose exec app redis-cli -h redis ping
+# 应该返回 PONG
+```
+
+---
+
+### 获取帮助 / Getting Help
+
+如果以上方法都无法解决问题：
+
+1. **运行诊断命令并复制输出**:
+   ```bash
+   docker compose logs > logs.txt 2>&1
+   ```
+
+2. **提交 GitHub Issue**:
+   - 访问 https://github.com/Flintcore/FlintStudio/issues
+   - 提供：操作系统、Docker 版本、错误日志、复现步骤
+
+3. **加入社区讨论**:
+   - https://community.phantomcore.ai/
 
 ---
 

@@ -7,6 +7,46 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.40] - 2026-03-13
+
+### 中文
+1. **多模型LLM适配器**: 全新轻量级模型适配系统
+   - 支持 8+ 种主流模型：GPT-4o/Claude/DeepSeek/Moonshot/GLM/本地模型等
+   - 自动模型适配策略：根据模型特性优化提示词和参数
+   - 用户可配置默认模型和自定义模型参数
+   - 自动成本估算和 Token 统计
+2. **自我修复Agent系统**: 类似OpenClaw的自动诊断修复
+   - 自动检测并修复 6 种常见错误类型
+   - 智能修复策略：JSON修复、模型降级、任务拆分、指数退避等
+   - 学习机制：记录修复成功率，优先使用高效策略
+   - 支持自动和手动触发修复
+3. **OpenClaw深度集成**: 完整的远程控制能力
+   - 新增 `/api/openclaw/control` 控制接口
+   - 支持工作流暂停/恢复/取消/重试
+   - 支持队列管理：暂停/恢复/清空
+   - 支持模型切换和连接测试
+   - 支持系统诊断和自动修复触发
+4. **数据库扩展**: 新增 `HealingIssue` 表记录修复历史
+
+### English
+1. **Multi-Model LLM Adapter**: New lightweight model adaptation system
+   - Support 8+ mainstream models: GPT-4o/Claude/DeepSeek/Moonshot/GLM/Local
+   - Automatic model adaptation: optimize prompts based on model characteristics
+   - User-configurable default models and custom parameters
+   - Automatic cost estimation and token tracking
+2. **Self-Healing Agent System**: Auto-diagnosis and repair like OpenClaw
+   - Auto-detect and fix 6 common error types
+   - Smart healing strategies: JSON repair, model fallback, task splitting, exponential backoff
+   - Learning mechanism: track success rates, prioritize effective strategies
+   - Support automatic and manual healing triggers
+3. **OpenClaw Deep Integration**: Complete remote control capabilities
+   - New `/api/openclaw/control` API endpoint
+   - Workflow pause/resume/cancel/retry support
+   - Queue management: pause/resume/clear
+   - Model switching and connection testing
+   - System diagnosis and auto-fix triggering
+4. **Database Extension**: Added `HealingIssue` table for repair history
+
 ## [Beta 0.32] - 2026-03-11
 
 ### 中文
