@@ -47,7 +47,6 @@ export async function runScriptToStoryboard(opts: {
   );
 
   const panels = Array.isArray(json.panels) ? json.panels : [];
-  const panelIds: string[] = [];
 
   const clip = await prisma.novelPromotionClip.findUnique({
     where: { id: clipId },
@@ -55,41 +54,43 @@ export async function runScriptToStoryboard(opts: {
   });
   if (!clip) throw new Error("Clip not found");
 
-  await prisma.novelPromotionStoryboard.deleteMany({ where: { clipId } });
+  const panelIds = await prisma.$transaction(async (tx) => {
+    await tx.novelPromotionStoryboard.deleteMany({ where: { clipId } });
 
-  const storyboard = await prisma.novelPromotionStoryboard.create({
-    data: {
-      episodeId: clip.episodeId,
-      clipId,
-      panelCount: panels.length,
-    },
-  });
-
-  for (let i = 0; i < panels.length; i++) {
-    const p = panels[i];
-    
-    // 构建元数据（包含新增的详细字段）
-    const metadata = {
-      location: p?.location,
-      characters: p?.characters,
-      shotType: p?.shotType,
-      cameraMove: p?.cameraMove,
-      performance: p?.performance,
-      lighting: p?.lighting,
-      mood: p?.mood,
-    };
-    
-    const created = await prisma.novelPromotionPanel.create({
+    const storyboard = await tx.novelPromotionStoryboard.create({
       data: {
-        storyboardId: storyboard.id,
-        panelIndex: i,
-        description: p?.description ? String(p.description) : null,
-        imagePrompt: p?.imagePrompt ? String(p.imagePrompt) : null,
-        metadata: JSON.stringify(metadata),
+        episodeId: clip.episodeId,
+        clipId,
+        panelCount: panels.length,
       },
     });
-    panelIds.push(created.id);
-  }
+
+    const ids: string[] = [];
+    for (let i = 0; i < panels.length; i++) {
+      const p = panels[i];
+      const metadata = {
+        location: p?.location,
+        characters: p?.characters,
+        shotType: p?.shotType,
+        cameraMove: p?.cameraMove,
+        performance: p?.performance,
+        lighting: p?.lighting,
+        mood: p?.mood,
+      };
+
+      const created = await tx.novelPromotionPanel.create({
+        data: {
+          storyboardId: storyboard.id,
+          panelIndex: i,
+          description: p?.description ? String(p.description) : null,
+          imagePrompt: p?.imagePrompt ? String(p.imagePrompt) : null,
+          metadata: JSON.stringify(metadata),
+        },
+      });
+      ids.push(created.id);
+    }
+    return ids;
+  });
 
   return { panelIds };
 }

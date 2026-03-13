@@ -80,7 +80,13 @@ export async function GET() {
 // 更新配置并测试连接
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
     const { type, config } = body;
 
     if (!type || !config) {

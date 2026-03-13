@@ -9,7 +9,14 @@ const MAX_USERNAME_LENGTH = 32;
 
 export async function POST(req: Request) {
   try {
-    const { username, password } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
+    const { username, password } = body;
     
     // 验证用户名
     if (!username || typeof username !== "string") {

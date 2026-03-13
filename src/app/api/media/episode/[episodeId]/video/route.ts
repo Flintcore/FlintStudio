@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { readFile } from "fs/promises";
+import { createReadStream } from "fs";
+import { stat } from "fs/promises";
+import { Readable } from "stream";
 import { env } from "@/lib/env";
 
 const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
@@ -28,13 +30,20 @@ export async function GET(
     if (!resolvedPath.startsWith(resolvedDir)) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
-    const buf = await readFile(resolvedPath);
-    return new NextResponse(buf, {
-      headers: {
-        "Content-Type": "video/mp4",
-        "Cache-Control": "public, max-age=86400",
-      },
-    });
+
+    const fileStat = await stat(resolvedPath);
+    const stream = createReadStream(resolvedPath);
+    const webStream = Readable.toWeb(stream) as ReadableStream;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "video/mp4",
+      "Cache-Control": "public, max-age=86400",
+    };
+    if (fileStat.size > 0) {
+      headers["Content-Length"] = String(fileStat.size);
+    }
+
+    return new Response(webStream, { headers });
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

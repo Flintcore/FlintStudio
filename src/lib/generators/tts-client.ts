@@ -4,6 +4,19 @@ import path from "path";
 import { normalizeOpenAIBaseUrl, OPENAI_COMPAT_PATHS } from "@/lib/openai-compat";
 import { withRetry } from "@/lib/utils/retry";
 
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function validateVoiceLineId(voiceLineId: string): string {
+  const basename = path.basename(voiceLineId);
+  if (!basename || basename !== voiceLineId || basename.includes("..")) {
+    throw new Error(`voiceLineId 格式无效，不能包含路径遍历字符`);
+  }
+  if (!UUID_REGEX.test(basename) && !/^[a-zA-Z0-9_.-]+$/.test(basename)) {
+    throw new Error(`voiceLineId 格式无效`);
+  }
+  return basename;
+}
+
 /** 检查是否为本地端点（不需要 API Key） */
 function isLocalEndpoint(baseUrl: string): boolean {
   const lower = baseUrl.toLowerCase();
@@ -74,9 +87,15 @@ export async function generateSpeech(opts: {
 
       const buf = Buffer.from(await res.arrayBuffer());
       await mkdir(VOICE_DIR, { recursive: true });
-      const filename = `${opts.voiceLineId}.mp3`;
+      const safeId = validateVoiceLineId(opts.voiceLineId);
+      const filename = `${safeId}.mp3`;
       const filePath = path.join(VOICE_DIR, filename);
-      await writeFile(filePath, buf);
+      const resolvedPath = path.resolve(filePath);
+      const resolvedDir = path.resolve(VOICE_DIR);
+      if (!resolvedPath.startsWith(resolvedDir + path.sep) && resolvedPath !== resolvedDir) {
+        throw new Error(`写入路径超出 VOICE_DIR 范围`);
+      }
+      await writeFile(resolvedPath, buf);
 
       return {
         audioUrl: `/api/media/voice/${filename}`,

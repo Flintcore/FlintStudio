@@ -3,7 +3,6 @@ import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
 import { env, validateEnv } from "@/lib/env";
 import { callAdvance } from "@/lib/utils/advance";
-import { Prisma } from "@prisma/client";
 
 // 启动时验证环境变量
 try {
@@ -56,6 +55,14 @@ async function processTextJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
 
   if (type === "analyze-novel") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const novelText = String((payload as { novelText?: string })?.novelText ?? "").trim();
     if (!novelText) {
       await prisma.task.update({
@@ -111,7 +118,7 @@ async function processTextJob(job: { data: TaskJobData }) {
         data: {
           status: "completed",
           finishedAt: new Date(),
-          result: { episodeIds, review: review as Record<string, unknown> } as Prisma.InputJsonValue,
+          result: { episodeIds, review: review as Record<string, unknown> } as object,
         },
       });
       if (runId) await callAdvance(runId, taskId);
@@ -128,6 +135,14 @@ async function processTextJob(job: { data: TaskJobData }) {
   }
 
   if (type === "story-to-script") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const episodeId = String((payload as { episodeId?: string })?.episodeId ?? targetId).trim();
     await prisma.task.update({
       where: { id: taskId },
@@ -182,6 +197,14 @@ async function processTextJob(job: { data: TaskJobData }) {
   }
 
   if (type === "script-to-storyboard") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const episodeId = String((payload as { episodeId?: string })?.episodeId ?? targetId).trim();
     await prisma.task.update({
       where: { id: taskId },
@@ -238,6 +261,14 @@ async function processImageJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, targetId, payload, runId } = job.data;
 
   if (type === "image-panel") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const episodeId = String((payload as { episodeId?: string })?.episodeId ?? targetId).trim();
     await prisma.task.update({
       where: { id: taskId },
@@ -328,6 +359,14 @@ async function processVoiceJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
 
   if (type === "voice-line") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const episodeId = String((payload as { episodeId?: string })?.episodeId ?? targetId).trim();
     await prisma.task.update({
       where: { id: taskId },
@@ -414,6 +453,14 @@ async function processVideoJob(job: { data: TaskJobData }) {
   const { type, taskId, targetId, payload, runId } = job.data;
 
   if (type === "video-panel") {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, result: true },
+    });
+    if (task?.status === "completed" && task.result != null) {
+      if (runId) await callAdvance(runId, taskId);
+      return;
+    }
     const episodeId = String((payload as { episodeId?: string })?.episodeId ?? targetId).trim();
     await prisma.task.update({
       where: { id: taskId },
@@ -568,4 +615,5 @@ process.on("uncaughtException", (err) => {
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("[Workers] 未处理的 Promise 拒绝:", promise, "原因:", reason);
+  void shutdown();
 });

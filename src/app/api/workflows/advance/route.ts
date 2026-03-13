@@ -12,11 +12,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => null);
+  if (body == null) {
+    return NextResponse.json(
+      { error: "请求体不是有效的 JSON" },
+      { status: 400 }
+    );
+  }
   const runId = String(body.runId ?? "").trim();
   const taskId = String(body.taskId ?? "").trim();
   if (!runId || !taskId) {
-    return NextResponse.json({ error: "runId and taskId required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "runId 和 taskId 必填且不能为空" },
+      { status: 400 }
+    );
   }
 
   await advanceRun(runId, taskId);

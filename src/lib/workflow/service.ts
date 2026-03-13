@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { redis } from "@/lib/redis";
 import { Prisma } from "@prisma/client";
 import { RUN_STATUS, type RunStatus } from "./types";
 import { getAgentNameForStepKey } from "./types";
@@ -148,7 +149,7 @@ export async function listRuns(opts: {
   });
 }
 
-/** 创建步骤和任务的通用函数 */
+/** 创建步骤和任务的通用函数（DB 部分使用事务，入队在事务成功后执行） */
 async function createStepAndTask(
   runId: string,
   run: { id: string; userId: string; projectId: string },
@@ -161,34 +162,38 @@ async function createStepAndTask(
   episodeId?: string,
   payload?: Record<string, unknown>
 ) {
-  const step = await prisma.graphStep.create({
-    data: {
-      runId,
-      stepKey,
-      stepTitle,
-      status: "pending",
-      stepIndex,
-      payload: { agent: getAgentNameForStepKey(stepKey), ...(payload ?? {}) } as object,
-    },
-  });
+  const { step, task } = await prisma.$transaction(async (tx) => {
+    const createdStep = await tx.graphStep.create({
+      data: {
+        runId,
+        stepKey,
+        stepTitle,
+        status: "pending",
+        stepIndex,
+        payload: { agent: getAgentNameForStepKey(stepKey), ...(payload ?? {}) } as object,
+      },
+    });
 
-  const task = await prisma.task.create({
-    data: {
-      userId: run.userId,
-      projectId: run.projectId,
-      episodeId,
-      runId,
-      type: taskType,
-      targetType,
-      targetId,
-      status: "queued",
-      payload: payload as object,
-    },
-  });
+    const createdTask = await tx.task.create({
+      data: {
+        userId: run.userId,
+        projectId: run.projectId,
+        episodeId,
+        runId,
+        type: taskType,
+        targetType,
+        targetId,
+        status: "queued",
+        payload: payload as object,
+      },
+    });
 
-  await prisma.graphStep.update({
-    where: { id: step.id },
-    data: { taskId: task.id, status: "running", startedAt: new Date() },
+    await tx.graphStep.update({
+      where: { id: createdStep.id },
+      data: { taskId: createdTask.id, status: "running", startedAt: new Date() },
+    });
+
+    return { step: createdStep, task: createdTask };
   });
 
   return { step, task };
@@ -226,18 +231,29 @@ export async function advanceRun(runId: string, taskId: string) {
     where: { id: taskId },
     select: { result: true },
   });
-  await prisma.graphStep.update({
-    where: { id: step.id },
-    data: {
-      status: "completed",
-      finishedAt: new Date(),
-      ...(task?.result != null ? { result: task.result as object } : {}),
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.graphStep.update({
+      where: { id: step.id },
+      data: {
+        status: "completed",
+        finishedAt: new Date(),
+        ...(task?.result != null ? { result: task.result as object } : {}),
+      },
+    });
   });
 
-  const runFresh = await getRunById(runId);
-  const phase = (runFresh ?? run).currentPhase as string;
-  const steps = (runFresh ?? run).steps;
+  // 分布式锁保护 phase 切换，避免多 Worker 并发重复创建下一步骤
+  const lockKey = `flint:advance:${runId}`;
+  const acquired = await redis.set(lockKey, "1", "EX", 60, "NX");
+  if (!acquired) return;
+
+  try {
+    // phase 切换前再次确认 run 状态，避免重复推进
+    const runFresh = await getRunById(runId);
+    if (!runFresh || runFresh.status !== RUN_STATUS.RUNNING) return;
+
+    const phase = runFresh.currentPhase as string;
+    const steps = runFresh.steps;
 
   if (phase === "analyze_novel") {
     const task = await prisma.task.findUnique({
@@ -261,7 +277,7 @@ export async function advanceRun(runId: string, taskId: string) {
       return;
     }
 
-    await createStoryToScriptSteps(runId, run, episodeIds);
+    await createStoryToScriptSteps(runId, runFresh, episodeIds);
     return;
   }
 
@@ -271,7 +287,7 @@ export async function advanceRun(runId: string, taskId: string) {
     if (!allDone) return;
 
     const np = await prisma.novelPromotionProject.findFirst({
-      where: { projectId: run.projectId },
+      where: { projectId: runFresh.projectId },
     });
     if (!np) {
       await finishRun(runId, RUN_STATUS.FAILED, { error: "项目数据不存在" });
@@ -308,7 +324,7 @@ export async function advanceRun(runId: string, taskId: string) {
       const stepKey = `script_to_storyboard_${i}`;
       const { task } = await createStepAndTask(
         runId,
-        run,
+        runFresh,
         stepKey,
         `分镜·第${ep.episodeNumber}集`,
         10 + i,
@@ -321,8 +337,8 @@ export async function advanceRun(runId: string, taskId: string) {
       await enqueueTask(TASK_TYPE.SCRIPT_TO_STORYBOARD, "script-to-storyboard", {
         taskId: task.id,
         type: TASK_TYPE.SCRIPT_TO_STORYBOARD,
-        userId: run.userId,
-        projectId: run.projectId,
+        userId: runFresh.userId,
+        projectId: runFresh.projectId,
         episodeId: ep.id,
         runId,
         targetType: "NovelPromotionEpisode",
@@ -339,7 +355,7 @@ export async function advanceRun(runId: string, taskId: string) {
     if (!allDone) return;
 
     const np = await prisma.novelPromotionProject.findFirst({
-      where: { projectId: run.projectId },
+      where: { projectId: runFresh.projectId },
     });
     if (!np) {
       await finishRun(runId, RUN_STATUS.FAILED, { error: "项目数据不存在" });
@@ -378,7 +394,7 @@ export async function advanceRun(runId: string, taskId: string) {
       const stepKey = `image_panels_${i}`;
       const { task } = await createStepAndTask(
         runId,
-        run,
+        runFresh,
         stepKey,
         `出图·第${ep.episodeNumber}集`,
         20 + i,
@@ -391,8 +407,8 @@ export async function advanceRun(runId: string, taskId: string) {
       await enqueueTask(TASK_TYPE.IMAGE_PANEL, "image-panel", {
         taskId: task.id,
         type: TASK_TYPE.IMAGE_PANEL,
-        userId: run.userId,
-        projectId: run.projectId,
+        userId: runFresh.userId,
+        projectId: runFresh.projectId,
         episodeId: ep.id,
         runId,
         targetType: "NovelPromotionEpisode",
@@ -409,7 +425,7 @@ export async function advanceRun(runId: string, taskId: string) {
     if (!allDone) return;
 
     const np = await prisma.novelPromotionProject.findFirst({
-      where: { projectId: run.projectId },
+      where: { projectId: runFresh.projectId },
     });
     if (!np) {
       await finishRun(runId, RUN_STATUS.FAILED, { error: "项目数据不存在" });
@@ -448,7 +464,7 @@ export async function advanceRun(runId: string, taskId: string) {
       const stepKey = `voice_${i}`;
       const { task } = await createStepAndTask(
         runId,
-        run,
+        runFresh,
         stepKey,
         `配音·第${ep.episodeNumber}集`,
         30 + i,
@@ -461,8 +477,8 @@ export async function advanceRun(runId: string, taskId: string) {
       await enqueueTask(TASK_TYPE.VOICE_LINE, "voice-line", {
         taskId: task.id,
         type: TASK_TYPE.VOICE_LINE,
-        userId: run.userId,
-        projectId: run.projectId,
+        userId: runFresh.userId,
+        projectId: runFresh.projectId,
         episodeId: ep.id,
         runId,
         targetType: "NovelPromotionEpisode",
@@ -479,7 +495,7 @@ export async function advanceRun(runId: string, taskId: string) {
     if (!allDone) return;
 
     const np = await prisma.novelPromotionProject.findFirst({
-      where: { projectId: run.projectId },
+      where: { projectId: runFresh.projectId },
     });
     if (!np) {
       await finishRun(runId, RUN_STATUS.FAILED, { error: "项目数据不存在" });
@@ -516,7 +532,7 @@ export async function advanceRun(runId: string, taskId: string) {
       const stepKey = `video_${i}`;
       const { task } = await createStepAndTask(
         runId,
-        run,
+        runFresh,
         stepKey,
         `视频合成·第${ep.episodeNumber}集`,
         40 + i,
@@ -529,8 +545,8 @@ export async function advanceRun(runId: string, taskId: string) {
       await enqueueTask(TASK_TYPE.VIDEO_PANEL, "video-episode", {
         taskId: task.id,
         type: TASK_TYPE.VIDEO_PANEL,
-        userId: run.userId,
-        projectId: run.projectId,
+        userId: runFresh.userId,
+        projectId: runFresh.projectId,
         episodeId: ep.id,
         runId,
         targetType: "NovelPromotionEpisode",
@@ -555,6 +571,9 @@ export async function advanceRun(runId: string, taskId: string) {
   const anyStepPending = steps.some((s) => s.status === "pending" || s.status === "running");
   if (!anyStepPending) {
     await finishRun(runId, RUN_STATUS.COMPLETED, {});
+  }
+  } finally {
+    await redis.del(lockKey);
   }
 }
 

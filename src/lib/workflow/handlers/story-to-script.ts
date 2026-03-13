@@ -33,29 +33,32 @@ export async function runStoryToScript(opts: {
   );
 
   const clips = Array.isArray(json.clips) ? json.clips : [];
-  const clipIds: string[] = [];
 
-  await prisma.novelPromotionClip.deleteMany({ where: { episodeId } });
+  const clipIds = await prisma.$transaction(async (tx) => {
+    await tx.novelPromotionClip.deleteMany({ where: { episodeId } });
 
-  for (const c of clips) {
-    const summary = String(c?.summary ?? "").trim() || "场";
-    const location =
-      c?.location != null && String(c.location).trim() ? String(c.location).trim() : null;
-    const content = String(c?.content ?? "").trim() || "";
-    const characters = Array.isArray(c?.characters)
-      ? (c.characters as string[]).filter((x) => typeof x === "string")
-      : [];
-    const created = await prisma.novelPromotionClip.create({
-      data: {
-        episodeId,
-        summary,
-        location,
-        content,
-        characters: characters.length ? JSON.stringify(characters) : null,
-      },
-    });
-    clipIds.push(created.id);
-  }
+    const ids: string[] = [];
+    for (const c of clips) {
+      const summary = String(c?.summary ?? "").trim() || "场";
+      const location =
+        c?.location != null && String(c.location).trim() ? String(c.location).trim() : null;
+      const content = String(c?.content ?? "").trim() || "";
+      const characters = Array.isArray(c?.characters)
+        ? (c.characters as string[]).filter((x) => typeof x === "string")
+        : [];
+      const created = await tx.novelPromotionClip.create({
+        data: {
+          episodeId,
+          summary,
+          location,
+          content,
+          characters: characters.length ? JSON.stringify(characters) : null,
+        },
+      });
+      ids.push(created.id);
+    }
+    return ids;
+  });
 
   return { clipIds };
 }

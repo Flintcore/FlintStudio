@@ -11,6 +11,18 @@ import { QUEUE_NAME } from "@/lib/task/queues";
 import type { TaskType } from "@/lib/task/types";
 import { selfHealingAgent } from "@/lib/agents/self-healing";
 
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function validateUuid(value: string | undefined, name: string): string {
+  if (!value || typeof value !== "string") {
+    throw new Error(`${name} 不能为空`);
+  }
+  if (!UUID_REGEX.test(value)) {
+    throw new Error(`${name} 格式非法，必须为 UUID`);
+  }
+  return value;
+}
+
 // 验证 INTERNAL_TASK_TOKEN
 function verifyInternalToken(req: Request): boolean {
   const token = req.headers.get("Authorization")?.replace("Bearer ", "");
@@ -27,7 +39,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
     const { command, params = {} } = body;
 
     switch (command) {
@@ -77,17 +95,26 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     console.error("[openclaw/control]", error);
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    const isValidation =
+      typeof msg === "string" &&
+      (msg.includes("不能为空") || msg.includes("格式非法") || msg.includes("对应的记录不存在"));
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { error: msg },
+      { status: isValidation ? 400 : 500 }
     );
   }
 }
 
 // 暂停工作流
-async function pauseWorkflow(params: { runId: string }) {
-  const { runId } = params;
-  
+async function pauseWorkflow(params: { runId?: string }) {
+  const runId = validateUuid(params.runId, "runId");
+
+  const run = await prisma.graphRun.findUnique({ where: { id: runId } });
+  if (!run) {
+    return NextResponse.json({ error: "runId 对应的记录不存在" }, { status: 400 });
+  }
+
   await prisma.graphRun.update({
     where: { id: runId },
     data: { status: "paused" },
@@ -100,9 +127,14 @@ async function pauseWorkflow(params: { runId: string }) {
 }
 
 // 恢复工作流
-async function resumeWorkflow(params: { runId: string }) {
-  const { runId } = params;
-  
+async function resumeWorkflow(params: { runId?: string }) {
+  const runId = validateUuid(params.runId, "runId");
+
+  const run = await prisma.graphRun.findUnique({ where: { id: runId } });
+  if (!run) {
+    return NextResponse.json({ error: "runId 对应的记录不存在" }, { status: 400 });
+  }
+
   await prisma.graphRun.update({
     where: { id: runId },
     data: { status: "running" },
@@ -115,9 +147,14 @@ async function resumeWorkflow(params: { runId: string }) {
 }
 
 // 取消工作流
-async function cancelWorkflow(params: { runId: string }) {
-  const { runId } = params;
-  
+async function cancelWorkflow(params: { runId?: string }) {
+  const runId = validateUuid(params.runId, "runId");
+
+  const run = await prisma.graphRun.findUnique({ where: { id: runId } });
+  if (!run) {
+    return NextResponse.json({ error: "runId 对应的记录不存在" }, { status: 400 });
+  }
+
   await prisma.graphRun.update({
     where: { id: runId },
     data: { status: "canceled", finishedAt: new Date() },
@@ -136,17 +173,17 @@ async function cancelWorkflow(params: { runId: string }) {
 }
 
 // 重试任务
-async function retryTask(params: { taskId: string }) {
-  const { taskId } = params;
-  
+async function retryTask(params: { taskId?: string }) {
+  const taskId = validateUuid(params.taskId, "taskId");
+
   const task = await prisma.task.findUnique({
     where: { id: taskId },
   });
   
   if (!task) {
     return NextResponse.json(
-      { error: "Task not found" },
-      { status: 404 }
+      { error: "taskId 对应的记录不存在" },
+      { status: 400 }
     );
   }
   

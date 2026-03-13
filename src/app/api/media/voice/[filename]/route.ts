@@ -22,10 +22,10 @@ export async function GET(
   }
   try {
     const filePath = path.join(VOICE_DIR, filename);
-    // 确保解析后的路径在允许的目录内
     const resolvedPath = path.resolve(filePath);
     const resolvedDir = path.resolve(VOICE_DIR);
-    if (!resolvedPath.startsWith(resolvedDir)) {
+    const relative = path.relative(resolvedDir, resolvedPath);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
     const buf = await readFile(resolvedPath);

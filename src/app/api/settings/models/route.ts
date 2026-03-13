@@ -62,7 +62,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getCurrentSession();
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
     const { modelId } = body;
     
     if (!modelId) {
@@ -91,7 +97,13 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await getCurrentSession();
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
     const { modelId, config } = body;
     
     if (!modelId || !config) {

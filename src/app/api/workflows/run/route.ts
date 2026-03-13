@@ -11,7 +11,13 @@ export async function POST(req: Request) {
   try {
     const session = await getCurrentSession();
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => null);
+    if (body == null) {
+      return NextResponse.json(
+        { error: "请求体不是有效的 JSON" },
+        { status: 400 }
+      );
+    }
     const projectId = String(body.projectId ?? "").trim();
     const novelText = String(body.novelText ?? body.input?.novelText ?? "").trim();
     const visualStyle = String(body.visualStyle ?? body.input?.visualStyle ?? "").trim() || undefined;
