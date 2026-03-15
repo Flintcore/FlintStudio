@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="https://img.shields.io/badge/FlintStudio-Open%20Source-amber?style=for-the-badge" alt="FlintStudio" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/Node-18%2B-green?style=for-the-badge" alt="Node" />
@@ -142,6 +142,19 @@ Preview of the UI and generated video.
 ---
 
 ## 🚀 快速开始 · Quick Start
+
+### 桌面版（Windows 安装包）· Desktop (Windows)
+
+**中文**  
+Windows 用户除 Docker 外，还可使用**桌面版**：像 Cursor 一样**一键安装、双击快捷方式即运行**。安装包内嵌 Redis，仅需本机安装 MySQL 或使用 Docker 启动 MySQL。构建与运行说明见 [desktop/README.md](desktop/README.md)。
+
+- **打包安装包**：项目根目录 `npm run build` → 进入 `desktop` 执行 `npm install`、`npm run build`、`npm run dist`，产物在 `desktop/release/`。
+- **本地运行桌面版**：在 `desktop` 目录执行 `npm run start` 或 `npm run electron`（需已执行 `npm run build`，且本机 MySQL、Redis 已就绪）。
+
+**English**  
+Windows users can use the **desktop build**: one-click installer and run from shortcut (Redis embedded; MySQL required locally or via Docker). See [desktop/README.md](desktop/README.md). Build: from repo root `npm run build`, then in `desktop`: `npm install`, `npm run build`, `npm run dist`. Run locally: in `desktop` run `npm run start` or `npm run electron`.
+
+---
 
 以下为**零基础可跟做**的 Docker 部署教程，从安装 Docker Desktop 到在浏览器里打开 FlintStudio。  
 Below is a **beginner-friendly** deployment guide from installing Docker Desktop to opening FlintStudio in your browser.

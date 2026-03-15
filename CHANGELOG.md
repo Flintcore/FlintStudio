@@ -7,6 +7,40 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.50] - 2026-03-15
+
+### 中文
+1. **桌面版（Electron）**
+   - 新增 `desktop/` 子目录，支持打包为 Windows 安装包（NSIS），一键安装、双击快捷方式即运行
+   - 内嵌 Redis：构建时自动下载 Windows 便携版并打入安装包，用户无需单独安装 Redis
+   - 内置 Web UI 与窗口：安装后自动启动 Next.js + Worker，打开本地浏览器窗口
+   - 支持 OpenClaw 远程控制（连接本机地址即可）
+   - 提供 `docker-compose.desktop.yml` 用于启动 MySQL（可选 Docker 方式）
+2. **画风（视觉风格）**
+   - 一键成片前可选择画风（写实实拍、3D 虚幻 CG、漫剧、日式动画、3D 国漫、电影感、美漫等）
+   - 分镜与出图统一采用所选风格；所选画风保存为项目默认
+3. **代码健康度修复**
+   - advanceRun 并发竞态：Redis 分布式锁保护 phase 切换
+   - Worker 任务幂等：重试时已完成任务直接跳过
+   - episodeId 路径校验、OpenClaw 参数校验、Next.js 启动时 validateEnv
+   - 多步 DB 写入使用事务；API body 校验与视频流式返回；Shell 转义与 SSRF 防护
+
+### English
+1. **Desktop (Electron)**
+   - New `desktop/` subdirectory: package as Windows installer (NSIS), one-click install and run from shortcut
+   - Embedded Redis: auto-download Windows portable Redis during build; users do not need to install Redis
+   - Built-in Web UI and window: starts Next.js + Worker and opens local browser window
+   - OpenClaw remote control supported (point to localhost)
+   - `docker-compose.desktop.yml` for MySQL (optional Docker)
+2. **Visual style**
+   - Choose visual style before one-click run (live-action, Unreal CG, manhua, anime, 3D donghua, cinematic, American comic)
+   - Storyboard and image generation follow the selected style; choice saved as project default
+3. **Code health fixes**
+   - advanceRun race: Redis distributed lock for phase transition
+   - Worker idempotency: skip already completed tasks on retry
+   - episodeId path validation, OpenClaw param validation, validateEnv on Next.js startup
+   - DB transactions for multi-step writes; API body validation and video streaming; shell escaping and SSRF protection
+
 ## [Beta 0.40] - 2026-03-13
 
 ### 中文

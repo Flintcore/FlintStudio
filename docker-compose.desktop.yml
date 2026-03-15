@@ -1,0 +1,34 @@
+# 桌面版依赖：仅 MySQL + Redis，供「使用 Docker 启动」时使用。
+# 用法：docker compose -f docker-compose.desktop.yml up -d
+# 需先创建数据库：mysql -h127.0.0.1 -uroot -p -e "CREATE DATABASE IF NOT EXISTS flintstudio;"
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: flintstudio
+      MYSQL_DATABASE: flintstudio
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_desktop_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pflintstudio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mysql_desktop_data:
