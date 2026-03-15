@@ -36,6 +36,10 @@ Thumbs.db
 data/
 docker-logs/
 
+# desktop 构建产物（安装包、复制出的 standalone/app/redis）
+desktop/release/
+desktop/resources/
+
 # reference (do not publish)
 waoowaoo/
 

@@ -80,7 +80,9 @@ function unzip(zipPath, outDir) {
       console.warn("解压后未找到 redis-server.exe，请检查 zip 结构。");
     }
   } catch (e) {
-    console.error(e.message || e);
-    process.exit(1);
+    console.warn("Redis 自动下载失败:", e.message || e);
+    console.warn("请稍后单独执行 npm run download-redis 重试，或手动将 redis-server.exe 放入 desktop/resources/redis/");
+    console.warn("构建将继续，但安装包需用户自行安装 Redis 或使用 Docker。");
+    process.exit(0);
   }
 })();

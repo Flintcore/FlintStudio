@@ -28,10 +28,35 @@ mysql -h127.0.0.1 -uroot -pflintstudio -e "CREATE DATABASE IF NOT EXISTS flintst
 
 ### 环境要求
 
-- Node.js 18+
-- 项目根目录已可正常 `npm run build` 与运行（MySQL、Redis 可用）
+- **Node.js 18+**（[官网下载](https://nodejs.org/)）
+- （可选）MySQL、Redis：用于本地调试；打安装包时 Redis 会自动下载，MySQL 用户需自行准备
 
-### 步骤
+### 新手一键构建 Windows 安装包
+
+在 **PowerShell** 或 **命令提示符** 中，依次执行以下命令（复制粘贴即可）：
+
+```powershell
+# 1. 进入项目根目录（请改成你的实际路径，如 C:\Projects\FlintStudio）
+cd C:\Projects\FlintStudio
+
+# 2. 安装依赖并构建
+npm install
+npm run build
+
+# 3. 进入桌面版目录
+cd desktop
+
+# 4. 安装桌面版依赖并构建（会下载 Redis、复制 standalone 等）
+npm install
+npm run build
+
+# 5. 打 Windows 安装包
+npm run dist
+```
+
+完成后，安装包在 `desktop\release\FlintStudio Setup 0.50.0.exe`，双击安装即可。
+
+### 详细步骤（与上面等效）
 
 1. **在项目根目录构建 Next 与 Prisma**
 
@@ -70,7 +95,7 @@ mysql -h127.0.0.1 -uroot -pflintstudio -e "CREATE DATABASE IF NOT EXISTS flintst
    npm run dist
    ```
 
-   产物在 `desktop/release/` 下，如 `FlintStudio Setup 0.40.0.exe`。安装后可创建桌面快捷方式，双击即运行。
+   产物在 `desktop/release/` 下，如 `FlintStudio Setup 0.50.0.exe`。安装后可创建桌面快捷方式，双击即运行。
 
 ## 配置
 

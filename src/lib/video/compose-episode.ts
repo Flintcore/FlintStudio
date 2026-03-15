@@ -89,7 +89,7 @@ async function downloadToTemp(url: string, filepath: string): Promise<void> {
     }
   }
 
-  const nodeReadable = Readable.fromWeb(res.body as globalThis.ReadableStream);
+  const nodeReadable = Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0]);
   let written = 0;
   const limitedStream = nodeReadable.pipe(
     new Transform({
