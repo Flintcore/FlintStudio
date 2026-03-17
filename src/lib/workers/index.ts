@@ -36,6 +36,108 @@ import { composeEpisodeVideo } from "@/lib/video/compose-episode";
 import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
 
+// ==================== beta0.55 新增：熔断器机制 ====================
+class CircuitBreaker {
+  private failures = 0;
+  private threshold = 5;
+  private cooldownMs = 60000; // 1 分钟冷却
+  private lastFailureTime: number = 0;
+  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
+
+  async execute<T>(operation: () => Promise<T>, context: string): Promise<T> {
+    if (this.state === 'OPEN') {
+      const now = Date.now();
+      if (now - this.lastFailureTime < this.cooldownMs) {
+        throw new Error(`Circuit breaker OPEN for ${context}: too many failures, cooling down`);
+      }
+      this.state = 'HALF_OPEN';
+    }
+
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  private onSuccess() {
+    this.failures = 0;
+    this.state = 'CLOSED';
+  }
+
+  private onFailure() {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+    if (this.failures >= this.threshold) {
+      this.state = 'OPEN';
+    }
+  }
+}
+
+// API 调用熔断器实例
+const apiCircuitBreakers = {
+  llm: new CircuitBreaker(),
+  image: new CircuitBreaker(),
+  voice: new CircuitBreaker(),
+  video: new CircuitBreaker(),
+};
+
+// ==================== beta0.55 新增：错误分类处理 ====================
+enum ErrorSeverity {
+  CRITICAL = 'critical',     // 必须解决：如 API 密钥无效
+  RETRYABLE = 'retryable',   // 可重试：如网络超时
+  DEGRADABLE = 'degradable', // 可降级：如某张图失败用占位图
+}
+
+function classifyError(error: Error): { severity: ErrorSeverity; shouldRetry: boolean } {
+  const message = error.message.toLowerCase();
+  
+  // 关键错误 - 不重试
+  if (message.includes('api key') || message.includes('unauthorized') || message.includes('forbidden')) {
+    return { severity: ErrorSeverity.CRITICAL, shouldRetry: false };
+  }
+  
+  // 可降级错误
+  if (message.includes('timeout') || message.includes('network') || message.includes('econnrefused')) {
+    return { severity: ErrorSeverity.RETRYABLE, shouldRetry: true };
+  }
+  
+  // 默认可重试
+  return { severity: ErrorSeverity.DEGRADABLE, shouldRetry: true };
+}
+
+// ==================== beta0.55 新增：带重试的包装函数 ====================
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  context: string,
+  maxRetries = TASK_RETRY_OPTIONS.attempts
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      const { severity, shouldRetry } = classifyError(lastError);
+      
+      if (!shouldRetry || attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      // 指数退避等待
+      const delay = TASK_RETRY_OPTIONS.backoff.delay * Math.pow(2, attempt - 1);
+      console.log(`[Worker] ${context} 失败 (尝试 ${attempt}/${maxRetries})，${delay}ms 后重试...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+}
+
 const concurrency = {
   image: env.QUEUE_CONCURRENCY_IMAGE,
   video: env.QUEUE_CONCURRENCY_VIDEO,
@@ -43,12 +145,21 @@ const concurrency = {
   text: env.QUEUE_CONCURRENCY_TEXT,
 };
 
-// 任务超时配置（毫秒）
+// 任务超时配置（毫秒）- 优化版 beta0.55
 const TASK_TIMEOUTS = {
-  text: 10 * 60 * 1000,    // 10 分钟
-  image: 5 * 60 * 1000,    // 5 分钟（单个图片）
-  voice: 10 * 60 * 1000,   // 10 分钟
-  video: 30 * 60 * 1000,   // 30 分钟
+  text: 15 * 60 * 1000,    // 15 分钟（大文本分析需要更久）
+  image: 10 * 60 * 1000,   // 10 分钟（复杂图生成）
+  voice: 15 * 60 * 1000,   // 15 分钟（长对白）
+  video: 60 * 60 * 1000,   // 60 分钟（长视频合成）
+};
+
+// 重试配置
+const TASK_RETRY_OPTIONS = {
+  attempts: 3,                    // 最多重试 3 次
+  backoff: {
+    type: 'exponential' as const, // 指数退避
+    delay: 2000,                  // 初始延迟 2 秒
+  },
 };
 
 async function processTextJob(job: { data: TaskJobData }) {

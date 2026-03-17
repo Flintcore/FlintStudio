@@ -7,6 +7,52 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [Beta 0.55] - 2026-03-16
+
+### 中文
+1. **稳定性增强**
+   - 优化任务超时配置：视频合成从 30 分钟延长至 60 分钟，图片生成从 5 分钟延长至 10 分钟
+   - 实现熔断器机制：API 调用失败超过阈值时自动熔断，防止级联故障
+   - 增加指数退避重试：任务失败自动重试 3 次，提高成功率
+   - 错误分类处理：区分关键错误、可重试错误、可降级错误
+
+2. **一致性控制**
+   - 新增角色一致性控制：通过 seed 锁定和描述保持角色形象稳定
+   - 新增场景一致性控制：保持场景光线、环境元素一致
+   - 智能提示词增强：自动在提示词中注入一致性参数
+
+3. **性能优化**
+   - 数据库索引优化：为常用查询添加 15+ 个索引，提升查询速度
+   - 批量出图优化：支持并发批量生成，减少总体等待时间
+   - 进度预估系统：实时计算剩余时间和完成百分比
+
+4. **降级处理**
+   - 图片生成失败时使用占位图，不阻塞整个工作流
+   - 失败面板记录详细错误信息，便于排查
+
+### English
+1. **Stability Enhancements**
+   - Optimized task timeouts: video composition extended from 30min to 60min, image generation from 5min to 10min
+   - Implemented circuit breaker: automatic circuit breaking when API failures exceed threshold
+   - Added exponential backoff retry: automatic retry up to 3 times on failure
+   - Error classification: distinguish critical, retryable, and degradable errors
+
+2. **Consistency Control**
+   - Character consistency: seed locking and description for stable character appearance
+   - Scene consistency: maintain lighting and environment elements
+   - Smart prompt enhancement: auto-inject consistency parameters into prompts
+
+3. **Performance Optimization**
+   - Database indexes: added 15+ indexes for common queries
+   - Batch image generation: concurrent batch processing
+   - Progress estimation: real-time remaining time and percentage calculation
+
+4. **Graceful Degradation**
+   - Placeholder images on generation failure without blocking workflow
+   - Detailed error logging for failed panels
+
+---
+
 ## [Beta 0.50] - 2026-03-15
 
 ### 中文

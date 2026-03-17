@@ -1,0 +1,25 @@
+{
+  "name": "@flintstudio/short-drama-writer",
+  "version": "0.55.0",
+  "description": "Self-evolving AI agent for short drama script creation",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "build": "tsc",
+    "test": "echo \"Tests not implemented yet\""
+  },
+  "keywords": [
+    "short-drama",
+    "script",
+    "AI",
+    "agent",
+    "self-evolving"
+  ],
+  "author": "FlintStudio Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

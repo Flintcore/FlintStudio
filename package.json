@@ -1,6 +1,6 @@
 {
   "name": "flint-studio",
-  "version": "0.50.0-beta",
+  "version": "0.55.0-beta",
   "private": true,
   "description": "FlintStudio 开源版 - 全 API 可配置的 AI 影视自动化多 Agent 协同平台",
   "engines": {

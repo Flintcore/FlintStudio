@@ -1,0 +1,288 @@
+{
+  "name": "flintstudio",
+  "version": "2.0.0",
+  "description": "FlintStudio 完整管理套件 - 部署、配置、控制、诊断一体化 (Beta 0.55)",
+  "description_en": "FlintStudio Complete Management Suite - Deployment, Configuration, Control, Diagnostics (Beta 0.55)",
+  "author": "Flintcore",
+  "homepage": "https://github.com/Flintcore/FlintStudio",
+  "license": "MIT",
+  "min_api_version": "1.0.0",
+  "tags": [
+    "flintstudio",
+    "deployment",
+    "management",
+    "ai",
+    "video",
+    "control",
+    "monitoring"
+  ],
+  "icon": "🎬",
+  "entry": {
+    "command": "deploy",
+    "description": "部署和管理 FlintStudio",
+    "description_en": "Deploy and manage FlintStudio"
+  },
+  "commands": [
+    {
+      "name": "deploy",
+      "description": "完整部署 FlintStudio（环境检查+代码克隆+配置+启动）",
+      "description_en": "Full deployment (env check + clone + configure + start)",
+      "params": [
+        {
+          "name": "mirror",
+          "description": "镜像源 (official/cn/global)",
+          "required": false,
+          "default": "official"
+        },
+        {
+          "name": "path",
+          "description": "自定义安装路径",
+          "required": false,
+          "default": "~/FlintStudio"
+        }
+      ]
+    },
+    {
+      "name": "start",
+      "description": "启动 FlintStudio 服务",
+      "description_en": "Start FlintStudio services",
+      "params": []
+    },
+    {
+      "name": "stop",
+      "description": "停止 FlintStudio 服务",
+      "description_en": "Stop FlintStudio services",
+      "params": []
+    },
+    {
+      "name": "restart",
+      "description": "重启服务（支持快速/完整模式）",
+      "description_en": "Restart services (quick/full)",
+      "params": [
+        {
+          "name": "quick",
+          "description": "快速重启（不重建容器）",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "update",
+      "description": "更新到最新版本",
+      "description_en": "Update to latest version",
+      "params": [
+        {
+          "name": "force",
+          "description": "强制更新（丢弃本地修改）",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "config",
+      "description": "配置 API 密钥和系统设置",
+      "description_en": "Configure API keys and settings",
+      "params": [
+        {
+          "name": "type",
+          "description": "配置类型 (llm/image/tts/all)",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "show",
+          "description": "显示当前配置",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "status",
+      "description": "检查运行状态",
+      "description_en": "Check running status",
+      "params": [
+        {
+          "name": "verbose",
+          "description": "详细模式",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "logs",
+      "description": "查看运行日志",
+      "description_en": "View runtime logs",
+      "params": [
+        {
+          "name": "service",
+          "description": "服务 (app/mysql/redis/all)",
+          "required": false,
+          "default": "app"
+        },
+        {
+          "name": "lines",
+          "description": "显示行数",
+          "required": false,
+          "default": "100"
+        }
+      ]
+    },
+    {
+      "name": "doctor",
+      "description": "系统诊断和自动修复",
+      "description_en": "System diagnosis and auto-fix",
+      "params": [
+        {
+          "name": "fix",
+          "description": "自动修复",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "full",
+          "description": "完整诊断",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "optimize",
+      "description": "Beta 0.55 性能优化",
+      "description_en": "Beta 0.55 performance optimization",
+      "params": [
+        {
+          "name": "indexes",
+          "description": "添加数据库索引",
+          "required": false,
+          "default": "true"
+        }
+      ]
+    },
+    {
+      "name": "backup",
+      "description": "备份数据库",
+      "description_en": "Backup database",
+      "params": [
+        {
+          "name": "path",
+          "description": "备份路径",
+          "required": false,
+          "default": "~/flintstudio-backups"
+        }
+      ]
+    },
+    {
+      "name": "restore",
+      "description": "从备份恢复",
+      "description_en": "Restore from backup",
+      "params": [
+        {
+          "name": "file",
+          "description": "备份文件路径",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "clean",
+      "description": "清理 Docker 缓存和日志",
+      "description_en": "Clean Docker cache and logs",
+      "params": [
+        {
+          "name": "all",
+          "description": "清理所有（包括镜像）",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "name": "connect",
+      "description": "连接到 FlintStudio 服务器",
+      "description_en": "Connect to FlintStudio server",
+      "params": [
+        {
+          "name": "url",
+          "description": "服务器地址",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create-project",
+      "description": "创建新项目",
+      "description_en": "Create new project",
+      "params": [
+        {
+          "name": "name",
+          "description": "项目名称",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "list-projects",
+      "description": "列出所有项目",
+      "description_en": "List all projects",
+      "params": []
+    },
+    {
+      "name": "start-workflow",
+      "description": "启动工作流",
+      "description_en": "Start workflow",
+      "params": [
+        {
+          "name": "project-id",
+          "description": "项目 ID",
+          "required": true
+        },
+        {
+          "name": "content",
+          "description": "小说/剧本内容",
+          "required": true
+        },
+        {
+          "name": "style",
+          "description": "视觉风格",
+          "required": false,
+          "default": "live-action"
+        }
+      ]
+    },
+    {
+      "name": "check-status",
+      "description": "检查工作流状态",
+      "description_en": "Check workflow status",
+      "params": [
+        {
+          "name": "run-id",
+          "description": "运行 ID",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get-result",
+      "description": "获取生成结果",
+      "description_en": "Get generation result",
+      "params": [
+        {
+          "name": "project-id",
+          "description": "项目 ID",
+          "required": true
+        },
+        {
+          "name": "episode",
+          "description": "集数",
+          "required": false,
+          "default": "1"
+        }
+      ]
+    }
+  ]
+}

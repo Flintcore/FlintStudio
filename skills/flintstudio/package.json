@@ -1,0 +1,26 @@
+{
+  "name": "@flintstudio/complete",
+  "version": "2.0.0",
+  "description": "FlintStudio 完整管理套件 - 合并 deploy + control (Beta 0.55)",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "build": "tsc",
+    "test": "echo \"Tests not implemented yet\""
+  },
+  "keywords": [
+    "flintstudio",
+    "deployment",
+    "management",
+    "ai",
+    "video",
+    "control"
+  ],
+  "author": "Flintcore",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

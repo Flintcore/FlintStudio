@@ -1,0 +1,52 @@
+{
+  "title": "龙王赘婿归来",
+  "genre": "urban-power",
+  "episodes": 80,
+  "hook": "\"你这个废物赘婿，也配做我女婿？离婚吧！\"",
+  "emotionCurve": [
+    { "episode": 1, "emotion": "depression", "intensity": 7 },
+    { "episode": 2, "emotion": "depression", "intensity": 8 },
+    { "episode": 3, "emotion": "hope", "intensity": 5 },
+    { "episode": 4, "emotion": "setback", "intensity": 7 },
+    { "episode": 5, "emotion": "counterattack", "intensity": 6 },
+    { "episode": 6, "emotion": "satisfaction", "intensity": 8 },
+    { "episode": 7, "emotion": "depression", "intensity": 6 },
+    { "episode": 8, "emotion": "hope", "intensity": 6 }
+  ],
+  "outline": [
+    {
+      "episodeNumber": 1,
+      "title": "第1集：赘婿受辱",
+      "summary": "主角作为赘婿在岳母家受尽羞辱，被要求离婚",
+      "scenes": [
+        {
+          "sceneNumber": 1,
+          "location": "豪宅客厅",
+          "characters": ["男主", "岳母"],
+          "content": "岳母当众羞辱男主，让他认清自己的身份",
+          "emotion": "depression"
+        }
+      ],
+      "cliffhanger": false
+    },
+    {
+      "episodeNumber": 10,
+      "title": "第10集：身份初现",
+      "summary": "神秘人物出现，暗示男主身份不凡",
+      "scenes": [
+        {
+          "sceneNumber": 1,
+          "location": "公司会议室",
+          "characters": ["男主", "神秘人"],
+          "content": "神秘黑衣人出现，称呼男主为龙王",
+          "emotion": "hope"
+        }
+      ],
+      "cliffhanger": true
+    }
+  ],
+  "checkpoints": [10, 20, 30, 40, 50, 60, 70, 80],
+  "paymentStrategy": "第10集: 首次身份揭示，设置强钩子; 第20集: 大高潮前铺垫，悬念最大化; 第30集: 持续反转，保持付费意愿",
+  "createdAt": "2026-03-16T23:30:00Z",
+  "version": "0.55.0"
+}
