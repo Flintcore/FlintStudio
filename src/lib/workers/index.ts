@@ -286,10 +286,28 @@ async function processImageJob(job: { data: TaskJobData }) {
         },
         orderBy: [{ storyboardId: "asc" }, { panelIndex: "asc" }],
       });
+
+      // 如果没有面板，任务直接完成
+      if (panels.length === 0) {
+        console.warn(`[Worker:image] 剧集 ${episodeId} 没有面板需要处理`);
+        await prisma.task.update({
+          where: { id: taskId },
+          data: {
+            status: "completed",
+            finishedAt: new Date(),
+            result: { panelsProcessed: 0, panelsFailed: 0, failedPanelIds: [] },
+          },
+        });
+        if (runId) await callAdvance(runId, taskId);
+        return;
+      }
+
       let done = 0;
       let failed = 0;
       const failedPanels: string[] = [];
       const total = panels.length;
+
+      console.log(`[Worker:image] 开始处理 ${total} 个面板，剧集 ${episodeId}`);
 
       for (const panel of panels) {
         const basePrompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
@@ -333,6 +351,8 @@ async function processImageJob(job: { data: TaskJobData }) {
       if (failed > 0) {
         console.warn(`[Worker:image] 集 ${episodeId} 中 ${failed}/${panels.length} 个面板生成失败`);
       }
+
+      console.log(`[Worker:image] 完成处理 ${total} 个面板，成功 ${done}，失败 ${failed}`);
       
       await prisma.task.update({
         where: { id: taskId },
@@ -361,6 +381,9 @@ async function processImageJob(job: { data: TaskJobData }) {
 
 const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
+const EPISODES_DIR = path.join(DATA_DIR, "episodes");
+
+import { existsSync } from "fs";
 
 async function processVoiceJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
@@ -400,9 +423,19 @@ async function processVoiceJob(job: { data: TaskJobData }) {
         clipsContent,
       });
       
+      // 如果没有提取到任何台词，任务失败
+      if (lineIds.length === 0) {
+        await prisma.task.update({
+          where: { id: taskId },
+          data: { status: "failed", errorMessage: "未能从剧集中提取到任何台词", finishedAt: new Date() },
+        });
+        if (runId) await failRun(runId, "未能从剧集中提取到任何台词");
+        return;
+      }
+
       let successCount = 0;
       let failCount = 0;
-      
+
       for (const lineId of lineIds) {
         const line = await prisma.novelPromotionVoiceLine.findUnique({
           where: { id: lineId },
@@ -512,14 +545,31 @@ async function processVideoJob(job: { data: TaskJobData }) {
         );
       }
       
-      const segs = episode.voiceLines.map((vl: { id: string }, i: number) => {
+      // 构建视频片段，过滤掉缺少音频文件的条目
+      const segs: Array<{ imageUrl: string | null; audioPath: string }> = [];
+      let skippedAudioCount = 0;
+      for (let i = 0; i < episode.voiceLines.length; i++) {
+        const vl = episode.voiceLines[i];
         const audioPath = path.join(VOICE_DIR, `${vl.id}.mp3`);
+        if (!existsSync(audioPath)) {
+          console.warn(`[Worker:video] 配音文件不存在，跳过: ${audioPath}`);
+          skippedAudioCount++;
+          continue;
+        }
         const panel = panelsOrdered[i % Math.max(1, panelsOrdered.length)];
-        return {
+        segs.push({
           imageUrl: panel?.imageUrl ?? null,
           audioPath,
-        };
-      });
+        });
+      }
+
+      if (segs.length === 0) {
+        throw new Error(`没有可用的配音文件（跳过了 ${skippedAudioCount} 个缺失文件）`);
+      }
+
+      if (skippedAudioCount > 0) {
+        console.warn(`[Worker:video] 共跳过 ${skippedAudioCount} 个缺失的配音文件`);
+      }
       const { videoPath } = await composeEpisodeVideo({
         episodeId,
         segments: segs,

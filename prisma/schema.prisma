@@ -360,6 +360,10 @@ model GraphRun {
   @@index([projectId])
   @@index([status])
   @@index([workflowId])
+  // 复合索引：优化项目状态查询
+  @@index([projectId, status, createdAt])
+  // 复合索引：优化活跃运行查询
+  @@index([status, createdAt])
   @@map("graph_runs")
 }
 
@@ -414,6 +418,10 @@ model Task {
   @@index([status])
   @@index([type])
   @@index([runId])
+  // 复合索引：优化工作流进度查询
+  @@index([runId, type, status])
+  // 复合索引：优化项目任务列表查询
+  @@index([projectId, status, createdAt])
   @@map("tasks")
 }
 

@@ -6,56 +6,114 @@ import { withRetry, LLM_RETRY_OPTIONS } from "@/lib/utils/retry";
  * 健壮 JSON 提取器。
  * 部分模型（DeepSeek、Qwen、Ollama 等）不支持 response_format=json_object，
  * 会在 JSON 外层包裹 ```json ... ``` 代码块，或在前后添加说明文字。
- * 三级尝试：① 直接解析 ② 提取 json 代码块 ③ 提取第一个完整 JSON 对象/数组
+ * 多级尝试：① 直接解析 ② 提取所有 json 代码块 ③ 智能提取 JSON 对象/数组
  */
 function extractJson<T>(content: string): T {
-  // 1. 直接解析
+  // 1. 直接解析（去除前后空白）
+  const trimmed = content.trim();
   try {
-    return JSON.parse(content) as T;
+    return JSON.parse(trimmed) as T;
   } catch {
     // 继续尝试
   }
 
-  // 2. 提取 ```json ... ``` 或 ``` ... ``` 代码块
-  const codeBlockMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (codeBlockMatch?.[1]) {
+  // 2. 提取 ```json ... ``` 或 ``` ... ``` 代码块（全局匹配，取第一个有效的）
+  const codeBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;
+  let match: RegExpExecArray | null;
+  const codeBlocks: string[] = [];
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    if (match[1]) codeBlocks.push(match[1].trim());
+  }
+  for (const block of codeBlocks) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim()) as T;
+      return JSON.parse(block) as T;
     } catch {
-      // 继续尝试
+      // 继续尝试下一个代码块
     }
   }
 
-  // 3. 提取第一个完整 JSON 对象 {} 或数组 []
-  // 找到第一个 { 或 [，然后用括号配对找到结尾
-  const firstBrace = content.search(/[{[]/);
-  if (firstBrace !== -1) {
-    const openChar = content[firstBrace];
-    const closeChar = openChar === "{" ? "}" : "]";
+  // 3. 智能提取：找到第一个 { 或 [，然后配对找结尾
+  // 使用栈来处理嵌套，正确处理字符串中的括号
+  const extractStructure = (startChar: "{" | "[", endChar: "}" | "]"): T | null => {
+    let startIdx = -1;
+    for (let i = 0; i < content.length; i++) {
+      if (content[i] === startChar) {
+        startIdx = i;
+        break;
+      }
+    }
+    if (startIdx === -1) return null;
+
     let depth = 0;
     let inString = false;
-    let escape = false;
-    for (let i = firstBrace; i < content.length; i++) {
+    let escapeNext = false;
+
+    for (let i = startIdx; i < content.length; i++) {
       const ch = content[i];
-      if (escape) { escape = false; continue; }
-      if (ch === "\\" && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
+
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+
+      if (ch === "\\") {
+        escapeNext = true;
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+
       if (inString) continue;
-      if (ch === openChar) depth++;
-      else if (ch === closeChar) {
+
+      if (ch === startChar) {
+        depth++;
+      } else if (ch === endChar) {
         depth--;
         if (depth === 0) {
           try {
-            return JSON.parse(content.slice(firstBrace, i + 1)) as T;
+            const jsonStr = content.slice(startIdx, i + 1);
+            return JSON.parse(jsonStr) as T;
           } catch {
-            break;
+            return null;
           }
         }
       }
     }
+    return null;
+  };
+
+  // 先尝试提取对象 {}
+  const objResult = extractStructure("{", "}");
+  if (objResult !== null) return objResult;
+
+  // 再尝试提取数组 []
+  const arrResult = extractStructure("[", "]");
+  if (arrResult !== null) return arrResult;
+
+  // 4. 清理常见的前缀/后缀后再次尝试
+  // 移除常见的 Markdown 前缀
+  const cleaned = content
+    .replace(/^\s*Here\s+(?:is|are)\s+(?:the|a)\s+JSON\s+(?:object|array|response)[:\s]*/i, "")
+    .replace(/^\s*JSON[:\s]*/i, "")
+    .replace(/\s*```\s*$/g, "")
+    .trim();
+
+  if (cleaned !== content) {
+    try {
+      return JSON.parse(cleaned) as T;
+    } catch {
+      // 继续
+    }
   }
 
-  throw new Error(`LLM 返回内容无法解析为 JSON。原始内容（前500字）：${content.slice(0, 500)}`);
+  // 所有尝试都失败了
+  const preview = content.slice(0, 500).replace(/\s+/g, " ");
+  throw new Error(
+    `无法从 LLM 响应中提取有效 JSON。内容预览: "${preview}${content.length > 500 ? "..." : ""}"`
+  );
 }
 
 /** 检查是否为本地端点（不需要 API Key） */
