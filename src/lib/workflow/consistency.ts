@@ -37,12 +37,12 @@ export async function getConsistencyContext(projectId: string): Promise<Consiste
       id: char.id,
       name: char.name,
       seed: 1000000 + index * 1000, // 基于索引生成固定seed
-      description: `${char.name}, ${char.appearance || 'unspecified appearance'}`,
+      description: `${char.name}, ${char.profileData || 'unspecified appearance'}`,
     })),
     scenes: project.locations.map((loc, index) => ({
       id: loc.id,
       location: loc.name,
-      lighting: loc.description || 'natural lighting',
+      lighting: loc.summary || 'natural lighting',
     })),
   };
 }
@@ -82,15 +82,9 @@ export async function handleImageFailure(
   console.error(`[Worker] 面板 ${panelId} 出图失败:`, error.message);
   
   // 记录失败但不阻止整个流程
-  await prisma.novelPromotionPanel.update({
-    where: { id: panelId },
-    data: {
-      status: 'failed',
-      errorMessage: error.message.slice(0, 500),
-      // 使用占位图或保持空白
-      imageUrl: process.env.FALLBACK_IMAGE_URL || null,
-    },
-  });
+  // NovelPromotionPanel 无 status/errorMessage 字段，仅记录日志，不更新 DB
+  // 图片失败时保持 imageUrl 为空，视频合成阶段会用占位黑图兜底
+  void error; // already logged above
 }
 
 // ==================== 进度预估 ====================

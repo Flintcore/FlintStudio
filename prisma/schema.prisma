@@ -93,6 +93,8 @@ model UserPreference {
   defaultLlmModel String? @default("gpt-4o-mini")
   // 新增：自定义模型配置 JSON
   customModels    String? @db.Text
+  /** 可选：Worker 调用 /api/workflows/advance 的 Bearer 令牌；与 .env INTERNAL_TASK_TOKEN 二选一（优先环境变量） */
+  internalTaskToken String? @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

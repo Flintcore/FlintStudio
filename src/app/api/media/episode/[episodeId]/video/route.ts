@@ -27,7 +27,7 @@ export async function GET(
     // 确保解析后的路径在允许的目录内
     const resolvedPath = path.resolve(filePath);
     const resolvedDir = path.resolve(EPISODES_DIR);
-    if (!resolvedPath.startsWith(resolvedDir)) {
+    if (!resolvedPath.startsWith(resolvedDir + path.sep)) {
       return NextResponse.json({ error: "Bad request" }, { status: 400 });
     }
 

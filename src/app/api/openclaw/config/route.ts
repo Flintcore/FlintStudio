@@ -7,12 +7,7 @@ import {
   type CustomProvider,
   type ApiType,
 } from "@/lib/api-config";
-
-// 验证 INTERNAL_TASK_TOKEN
-function verifyInternalToken(req: Request): boolean {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-  return token === process.env.INTERNAL_TASK_TOKEN;
-}
+import { verifyOpenclawBearer } from "@/lib/openclaw-internal-auth";
 
 // 脱敏 API Key：只显示前4位和后4位，中间用 *** 替代
 function maskApiKey(key: string | null | undefined): string {
@@ -42,7 +37,7 @@ function isValidApiKey(key: string): boolean {
 export async function GET(req: Request) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -104,7 +99,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

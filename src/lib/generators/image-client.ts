@@ -44,8 +44,9 @@ export async function generateImage(opts: {
           prompt: opts.prompt.slice(0, 4000),
           n: 1,
           size: opts.size ?? "1024x1024",
+          // response_format: "url" 让 API 优先返回 URL，但不强制（部分提供商忽略此参数）
+          // quality 参数已移除：DALL-E 3 专有，ComfyUI/SD/国产 API 不支持，会导致 400 错误
           response_format: "url",
-          quality: "standard",
         }),
       });
 
@@ -60,7 +61,8 @@ export async function generateImage(opts: {
       const first = data.data?.[0];
       if (!first) throw new Error("图像 API 未返回图片");
       if (first.url) return { url: first.url };
-      if (first.b64_json) return { b64: first.b64_json };
+      // b64_json：将 base64 转成 data URL，调用方（视频合成）统一处理
+      if (first.b64_json) return { url: `data:image/png;base64,${first.b64_json}` };
       throw new Error("图像 API 返回格式异常");
     },
     {

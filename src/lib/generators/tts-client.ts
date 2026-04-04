@@ -74,7 +74,8 @@ export async function generateSpeech(opts: {
         method: "POST",
         headers,
         body: JSON.stringify({
-          model: "tts-1",
+          // 优先使用用户配置的模型名；Fish Audio 用 "speech-01"，MiniMax 用 "speech-01-hd"，OpenAI 用 "tts-1"
+          model: config.model ?? "tts-1",
           voice: opts.voice || "alloy",
           input: opts.text.slice(0, 4096),
         }),

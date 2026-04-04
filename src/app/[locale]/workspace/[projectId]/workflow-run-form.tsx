@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Zap, Palette } from "lucide-react";
 import { PipelineDagView } from "./workflow-pipeline-dag";
 import { VISUAL_STYLES } from "@/lib/workflow/visual-style";
@@ -10,11 +10,13 @@ type RunStatus = {
   status: string;
   currentPhase: string | null;
   errorMessage: string | null;
+  imageProgress?: { done: number; total: number } | null;
   output?: { message?: string; issues?: string[] } | null;
   steps: Array<{
     stepKey: string;
     stepTitle: string;
     status: string;
+    errorMessage?: string | null;
     startedAt: string | null;
     finishedAt: string | null;
     result?: Record<string, unknown> | null;
@@ -27,8 +29,8 @@ function stepResultSummary(step: RunStatus["steps"][0]): string | null {
   const r = step?.result;
   if (!r || typeof r !== "object") return null;
   if (step.stepKey === "analyze_novel" && r.episodeIds && Array.isArray(r.episodeIds)) {
-    const review = r.review as { ok?: boolean; issues?: string[] } | undefined;
-    const reviewText = review?.ok === true
+    const review = r.review as { passed?: boolean; issues?: string[] } | undefined;
+    const reviewText = review?.passed === true
       ? "复查: 通过"
       : review?.issues?.length
         ? `复查: ${review.issues.join("; ")}`
@@ -59,6 +61,16 @@ export function WorkflowRunForm({
   const [error, setError] = useState("");
   const [continueLoading, setContinueLoading] = useState(false);
   const [retryAnalyzeLoading, setRetryAnalyzeLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function stopPolling() {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }
 
   async function continueAfterReview() {
     if (!runId) return;
@@ -104,16 +116,38 @@ export function WorkflowRunForm({
     }
   }
 
-  async function startWorkflow() {
+  async function cancelWorkflow() {
+    if (!runId) return;
+    setCancelLoading(true);
+    stopPolling();
+    try {
+      const res = await fetch(`/api/workflows/runs/${runId}/cancel`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "取消失败");
+        return;
+      }
+      setRunStatus((prev) => prev ? { ...prev, status: "canceled" } : prev);
+      setError("");
+    } catch (e) {
+      setError((e as Error).message ?? "请求失败");
+    } finally {
+      setCancelLoading(false);
+    }
+  }
+
+  async function doStartWorkflow() {
     const text = novelText.trim();
     if (!text) {
       setError("请粘贴小说或剧本文本");
       return;
     }
     setError("");
+    setShowConfirm(false);
     setLoading(true);
     setRunId(null);
     setRunStatus(null);
+    stopPolling();
     try {
       const res = await fetch("/api/workflows/run", {
         method: "POST",
@@ -140,25 +174,44 @@ export function WorkflowRunForm({
     }
   }
 
+  async function startWorkflow() {
+    // 如果已有运行中/已完成的记录，弹出确认框
+    if (runStatus && (runStatus.status === "running" || runStatus.status === "completed")) {
+      setShowConfirm(true);
+      return;
+    }
+    await doStartWorkflow();
+  }
+
   function pollRun(id: string) {
-    const interval = setInterval(async () => {
+    stopPolling();
+    intervalRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/workflows/runs/${id}`);
         const run: RunStatus = await res.json();
         if (!res.ok) return;
         setRunStatus(run);
-        if (run.status === "completed" || run.status === "failed") {
-          clearInterval(interval);
+        if (
+          run.status === "completed" ||
+          run.status === "failed" ||
+          run.status === "canceled"
+        ) {
+          stopPolling();
           return;
         }
         if (run.currentPhase === "review_failed") {
-          clearInterval(interval);
+          stopPolling();
         }
       } catch {
         // ignore
       }
     }, 2000);
   }
+
+  // 找到 voice 失败步骤
+  const voiceFailedStep = runStatus?.steps.find(
+    (s) => s.stepKey === "voice" && s.status === "failed"
+  );
 
   return (
     <section className="card-base glass-surface mt-8 p-6 animate-slide-up animation-delay-100">
@@ -230,9 +283,49 @@ export function WorkflowRunForm({
         {loading ? "启动中…" : "启动工作流"}
       </button>
 
+      {/* 重跑确认弹窗 */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="card-base glass-surface w-full max-w-sm rounded-2xl border border-[var(--border)] p-6 shadow-xl animate-fade-in">
+            <h3 className="font-semibold text-[var(--foreground)]">确认重新运行？</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              重新运行将覆盖当前所有已生成内容，包括图片、音频和视频。此操作不可撤销。
+            </p>
+            <div className="mt-5 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--muted)]/20"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={doStartWorkflow}
+                className="rounded-lg bg-[var(--error)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                确认重新运行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {runStatus && (
         <div className="mt-6 border-t border-[var(--border)] pt-4 animate-fade-in">
-          <h3 className="font-medium text-[var(--foreground)]">运行状态</h3>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="font-medium text-[var(--foreground)]">运行状态</h3>
+            {(runStatus.status === "running" || runStatus.status === "queued") && (
+              <button
+                type="button"
+                onClick={cancelWorkflow}
+                disabled={cancelLoading}
+                className="rounded-lg border border-[var(--error)]/40 bg-[var(--error)]/5 px-3 py-1.5 text-xs font-medium text-[var(--error)] hover:bg-[var(--error)]/10 disabled:opacity-50"
+              >
+                {cancelLoading ? "取消中…" : "取消运行"}
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">
             状态: <span className="text-[var(--foreground)]">{runStatus.status}</span>
             {runStatus.currentPhase && (
@@ -242,6 +335,34 @@ export function WorkflowRunForm({
           {runStatus.errorMessage && (
             <p className="mt-1 text-sm text-[var(--error)]">{runStatus.errorMessage}</p>
           )}
+
+          {/* P0③: TTS 失败详细信息 */}
+          {voiceFailedStep && (
+            <div className="mt-2 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/5 p-3 text-sm">
+              <p className="font-medium text-[var(--error)]">配音阶段失败</p>
+              {voiceFailedStep.errorMessage && (
+                <p className="mt-1 text-[var(--muted)]">{voiceFailedStep.errorMessage}</p>
+              )}
+              <p className="mt-1 text-xs text-[var(--muted)]">请检查设置中的 TTS API 配置是否正确。</p>
+            </div>
+          )}
+
+          {/* P1④: 图像生成进度条 */}
+          {runStatus.currentPhase === "image_panels" && runStatus.imageProgress && runStatus.imageProgress.total > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs text-[var(--muted)] mb-1">
+                <span>图像生成中</span>
+                <span>{runStatus.imageProgress.done} / {runStatus.imageProgress.total} 张</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-[var(--border)] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+                  style={{ width: `${Math.round((runStatus.imageProgress.done / runStatus.imageProgress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {runStatus.currentPhase === "review_failed" && (
             <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-sm">
               <p className="text-[var(--foreground)]">
@@ -288,26 +409,33 @@ export function WorkflowRunForm({
                         ? "text-[var(--success)]"
                         : s.status === "running"
                           ? "text-[var(--accent)] animate-pulse-slow"
-                          : "text-[var(--muted)]"
+                          : s.status === "failed"
+                            ? "text-[var(--error)]"
+                            : "text-[var(--muted)]"
                     }
                   >
-                    {s.status === "completed" ? "✓" : s.status === "running" ? "…" : "○"}{" "}
+                    {s.status === "completed" ? "✓" : s.status === "running" ? "…" : s.status === "failed" ? "✗" : "○"}{" "}
                   </span>
                   <span>
                     {s.stepTitle} ({s.status})
                     {summary != null && (
                       <span className="ml-2 text-[var(--muted)]">· {summary}</span>
                     )}
+                    {s.status === "failed" && s.errorMessage && (
+                      <span className="ml-2 text-[var(--error)] text-xs">— {s.errorMessage}</span>
+                    )}
                   </span>
                 </li>
               );
             })}
           </ul>
-          {(runStatus.status === "completed" || runStatus.status === "failed") && (
+          {(runStatus.status === "completed" || runStatus.status === "failed" || runStatus.status === "canceled") && (
             <p className="mt-3 text-xs text-[var(--muted)]">
               {runStatus.status === "completed"
                 ? "运行已结束。请刷新页面查看最新集数、分场、分镜与出图。"
-                : "运行失败，请检查设置中的 API 配置或重试。"}
+                : runStatus.status === "canceled"
+                  ? "运行已取消。"
+                  : "运行失败，请检查设置中的 API 配置或重试。"}
             </p>
           )}
         </div>

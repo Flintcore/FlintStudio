@@ -35,6 +35,12 @@ export async function runAnalyzeNovel(opts: {
   const episodeIds = await prisma.$transaction(async (tx) => {
     const ids: string[] = [];
 
+    // 重试时清除旧数据，防止角色/场景/剧集重复堆叠
+    // Cascade 会自动删除关联的 clips、storyboards、panels、voiceLines 等
+    await tx.novelPromotionCharacter.deleteMany({ where: { novelPromotionProjectId: novelPromotionId } });
+    await tx.novelPromotionLocation.deleteMany({ where: { novelPromotionProjectId: novelPromotionId } });
+    await tx.novelPromotionEpisode.deleteMany({ where: { novelPromotionProjectId: novelPromotionId } });
+
     for (const c of characters) {
       const name = String(c?.name ?? "").trim();
       if (!name) continue;
@@ -72,7 +78,12 @@ export async function runAnalyzeNovel(opts: {
     for (const ep of episodes) {
       const aiEpisodeNum = Number(ep?.episodeNumber) || 1;
       const num = baseEpisodeNumber + aiEpisodeNum;
-      const name = String(ep?.name ?? `第${aiEpisodeNum}集`).trim();
+      // 兼容 LLM 返回 name 或 title（提示词已统一为 name，此处保留双重兜底）
+      const name = String(
+        (ep as Record<string, unknown>)?.name ??
+        (ep as Record<string, unknown>)?.title ??
+        `第${aiEpisodeNum}集`
+      ).trim();
       const content = String(ep?.content ?? "").trim();
 
       try {

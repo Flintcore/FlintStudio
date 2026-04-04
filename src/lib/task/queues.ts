@@ -62,3 +62,20 @@ export function getQueueByType(type: QueueType) {
       return textQueue;
   }
 }
+
+/** 移除 BullMQ 队列中属于指定 runId 的所有待处理/进行中 Job */
+export async function cancelRunJobs(runId: string): Promise<void> {
+  const queues = [textQueue, imageQueue, voiceQueue, videoQueue];
+  for (const q of queues) {
+    try {
+      const jobs = await q.getJobs(["waiting", "active", "delayed", "prioritized"]);
+      for (const job of jobs) {
+        if ((job.data as { runId?: string })?.runId === runId) {
+          await job.remove().catch(() => {});
+        }
+      }
+    } catch {
+      // 忽略单个队列的错误，继续处理其他队列
+    }
+  }
+}

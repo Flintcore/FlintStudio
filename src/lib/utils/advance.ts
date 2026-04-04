@@ -4,9 +4,9 @@
  */
 
 import { env } from "@/lib/env";
+import { resolveInternalTaskToken } from "@/lib/internal-task-token";
 
 const NEXT_PUBLIC_APP_URL = env.NEXTAUTH_URL;
-const INTERNAL_TOKEN = env.INTERNAL_TASK_TOKEN;
 
 // 推进请求配置
 const ADVANCE_RETRY_OPTIONS = {
@@ -24,13 +24,15 @@ const ADVANCE_RETRY_OPTIONS = {
 export async function callAdvance(runId: string, taskId: string): Promise<void> {
   let lastError: Error | null = null;
 
+  const bearer = await resolveInternalTaskToken();
+
   for (let attempt = 1; attempt <= ADVANCE_RETRY_OPTIONS.maxAttempts; attempt++) {
     try {
       const res = await fetch(`${NEXT_PUBLIC_APP_URL}/api/workflows/advance`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${INTERNAL_TOKEN}`,
+          Authorization: `Bearer ${bearer}`,
         },
         body: JSON.stringify({ runId, taskId }),
       });

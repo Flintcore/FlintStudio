@@ -4,12 +4,7 @@ import { getOrCreateDefaultUser } from "@/lib/auth";
 import { createRun, startRunFirstStep } from "@/lib/workflow/service";
 import { WORKFLOW_ID } from "@/lib/workflow/types";
 import { isValidVisualStyleId } from "@/lib/workflow/visual-style";
-
-// 验证 INTERNAL_TASK_TOKEN
-function verifyInternalToken(req: Request): boolean {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-  return token === process.env.INTERNAL_TASK_TOKEN;
-}
+import { verifyOpenclawBearer } from "@/lib/openclaw-internal-auth";
 
 // 最大输入长度限制
 const MAX_NOVEL_TEXT_LENGTH = 100000; // 10万字符
@@ -18,7 +13,7 @@ const MAX_NOVEL_TEXT_LENGTH = 100000; // 10万字符
 export async function POST(req: Request) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -165,7 +160,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

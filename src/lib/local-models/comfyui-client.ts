@@ -18,7 +18,7 @@ export interface ComfyUIConfig {
 
 export interface ComfyUIWorkflow {
   [nodeId: string]: {
-    inputs: { [key: string]: any };
+    inputs: { [key: string]: unknown };
     class_type: string;
     _meta?: { title?: string };
   };
@@ -168,7 +168,7 @@ export class ComfyUIClient {
   async queuePrompt(workflow: ComfyUIWorkflow): Promise<{
     prompt_id: string;
     number: number;
-    node_errors: Record<string, any>;
+    node_errors: Record<string, unknown>;
   }> {
     const response = await fetch(`${this.config.baseUrl}/prompt`, {
       method: "POST",
@@ -396,9 +396,10 @@ export class ComfyUIClient {
    */
   async *trackProgress(promptId: string): AsyncGenerator<{
     type: string;
-    data: any;
+    data: unknown;
   }> {
     // 动态导入 ws 模块（仅在服务端）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let WebSocket: any;
     try {
       const wsModule = await import("ws");

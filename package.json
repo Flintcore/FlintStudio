@@ -17,7 +17,8 @@
     "start:worker": "tsx --env-file=.env src/lib/workers/index.ts",
     "lint": "eslint .",
     "clean": "rimraf .next",
-    "check:docker": "node scripts/check-docker.js"
+    "check:docker": "node scripts/check-docker.js",
+    "setup": "node scripts/setup.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

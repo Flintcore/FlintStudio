@@ -77,6 +77,37 @@ services:
       retries: 3
       start_period: 60s
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flintstudio-worker
+    restart: unless-stopped
+    command: ["node_modules/.bin/tsx", "src/lib/workers/index.ts"]
+    environment:
+      DATABASE_URL: "mysql://root:flintstudio@mysql:3306/flintstudio"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_USERNAME: ""
+      REDIS_PASSWORD: ""
+      NEXTAUTH_URL: "http://localhost:13000"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-flintstudio-docker-secret-change-in-production}
+      INTERNAL_TASK_TOKEN: ${INTERNAL_TASK_TOKEN:-flintstudio-task-token}
+      API_ENCRYPTION_KEY: ${API_ENCRYPTION_KEY:-flintstudio-encryption-key-32bytes!!}
+      QUEUE_CONCURRENCY_IMAGE: "4"
+      QUEUE_CONCURRENCY_VIDEO: "2"
+      QUEUE_CONCURRENCY_VOICE: "4"
+      QUEUE_CONCURRENCY_TEXT: "4"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+
 volumes:
   mysql_data:
   redis_data:

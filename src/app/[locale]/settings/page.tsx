@@ -21,11 +21,13 @@ export default async function SettingsPage() {
           设置中心
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          所有 AI 服务均需自行配置 API，无厂商锁定。支持多 API、多模型接入，可添加多个提供商并选择默认。
+          大语言模型、图像、语音、视频等 <strong className="text-[var(--foreground)]">AI 接口</strong>{" "}
+          均在下方配置并写入数据库，无需在 <code className="text-xs">.env</code> 填写 API Key。部署仅需{" "}
+          <code className="text-xs">DATABASE_URL</code>、Redis 等基础设施变量；Worker 内部令牌可在下方填写，也可使用{" "}
+          <code className="text-xs">INTERNAL_TASK_TOKEN</code> 环境变量（二选一即可）。
         </p>
         <div className="mt-8 space-y-6">
           <ApiConfigForm
-            userId={session.user.id}
             initial={{
               llmBaseUrl: prefs?.llmBaseUrl ?? "https://openrouter.ai/api/v1",
               llmApiKey: prefs?.llmApiKey ?? "",
@@ -38,6 +40,7 @@ export default async function SettingsPage() {
               analysisModel: prefs?.analysisModel ?? "",
               storyboardModel: prefs?.storyboardModel ?? "",
               videoModel: prefs?.videoModel ?? "",
+              hasWorkerInternalToken: !!(prefs?.internalTaskToken && String(prefs.internalTaskToken).trim()),
               providers,
               defaults: defaults ?? {},
             }}

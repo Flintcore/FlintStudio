@@ -9,7 +9,6 @@ import { env } from "@/lib/env";
 
 const execAsync = promisify(exec);
 const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
-const VOICE_DIR = path.join(DATA_DIR, "voice");
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
@@ -70,6 +69,15 @@ function validateImageUrl(url: string): void {
 }
 
 async function downloadToTemp(url: string, filepath: string): Promise<void> {
+  // 处理 data: URL（由图像 API 返回 b64_json 时生成）
+  if (url.startsWith("data:")) {
+    const commaIndex = url.indexOf(",");
+    if (commaIndex === -1) throw new Error(`无效的 data URL: ${url.slice(0, 50)}`);
+    const base64Data = url.slice(commaIndex + 1);
+    await writeFile(filepath, Buffer.from(base64Data, "base64"));
+    return;
+  }
+
   const base = env.NEXTAUTH_URL || "http://localhost:3000";
   const fullUrl = url.startsWith("http") ? url : `${base}${url}`;
   validateImageUrl(fullUrl);

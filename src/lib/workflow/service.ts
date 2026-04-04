@@ -262,7 +262,7 @@ export async function advanceRun(runId: string, taskId: string) {
     });
     const result = (task?.result ?? {}) as {
       episodeIds?: string[];
-      review?: { ok?: boolean; issues?: string[] };
+      review?: { passed?: boolean; issues?: string[] };
     };
     const episodeIds = result.episodeIds ?? [];
     const review = result.review;
@@ -272,7 +272,7 @@ export async function advanceRun(runId: string, taskId: string) {
       return;
     }
 
-    if (review && review.ok === false && Array.isArray(review.issues) && review.issues.length > 0) {
+    if (review && review.passed === false && Array.isArray(review.issues) && review.issues.length > 0) {
       await pauseRunForReview(runId, review.issues);
       return;
     }

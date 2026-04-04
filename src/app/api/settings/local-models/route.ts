@@ -5,7 +5,6 @@
  */
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { OllamaClient } from "@/lib/local-models/ollama-client";
 import { ComfyUIClient } from "@/lib/local-models/comfyui-client";
 
@@ -96,6 +95,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // eslint-disable-next-line prefer-const
     let testResult = {
       success: false,
       message: "",

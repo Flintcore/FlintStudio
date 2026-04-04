@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { WorkflowRunForm } from "./workflow-run-form";
 import { RunList } from "./run-list";
 import { AppHeader } from "../../components/app-header";
+import { ProjectStats } from "./project-stats";
 
 export default async function ProjectPage({
   params,
@@ -54,6 +55,8 @@ export default async function ProjectPage({
             请在「设置」中配置 LLM、图像、语音、视频的 API 后使用。
           </p>
         </section>
+
+        <ProjectStats projectId={projectId} />
 
         <WorkflowRunForm
           projectId={projectId}

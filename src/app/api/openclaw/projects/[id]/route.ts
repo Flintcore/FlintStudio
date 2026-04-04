@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getOrCreateDefaultUser } from "@/lib/auth";
-
-// 验证 INTERNAL_TASK_TOKEN
-function verifyInternalToken(req: Request): boolean {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-  return token === process.env.INTERNAL_TASK_TOKEN;
-}
+import { verifyOpenclawBearer } from "@/lib/openclaw-internal-auth";
 
 // GET: 获取项目详情
 export async function GET(
@@ -15,7 +10,7 @@ export async function GET(
 ) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -166,7 +161,7 @@ export async function DELETE(
 ) {
   try {
     // 验证 token
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

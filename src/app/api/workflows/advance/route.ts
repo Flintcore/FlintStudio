@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { advanceRun } from "@/lib/workflow/service";
-import { env } from "@/lib/env";
-
-const INTERNAL_TOKEN = env.INTERNAL_TASK_TOKEN;
+import { isValidAdvanceBearer } from "@/lib/internal-task-token";
 
 /** Worker 在任务完成后调用，推进工作流到下一阶段 */
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
-  if (!INTERNAL_TOKEN || token !== INTERNAL_TOKEN) {
+  if (!(await isValidAdvanceBearer(token))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

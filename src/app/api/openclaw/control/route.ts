@@ -10,6 +10,7 @@ import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
 import type { TaskType } from "@/lib/task/types";
 import { selfHealingAgent } from "@/lib/agents/self-healing";
+import { verifyOpenclawBearer } from "@/lib/openclaw-internal-auth";
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
@@ -23,16 +24,10 @@ function validateUuid(value: string | undefined, name: string): string {
   return value;
 }
 
-// 验证 INTERNAL_TASK_TOKEN
-function verifyInternalToken(req: Request): boolean {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-  return token === process.env.INTERNAL_TASK_TOKEN;
-}
-
 // POST: 执行控制命令
 export async function POST(req: Request) {
   try {
-    if (!verifyInternalToken(req)) {
+    if (!(await verifyOpenclawBearer(req))) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

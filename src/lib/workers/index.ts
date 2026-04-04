@@ -2,22 +2,8 @@ import { Worker } from "bullmq";
 import { queueRedis } from "@/lib/redis";
 import { QUEUE_NAME } from "@/lib/task/queues";
 import { env, validateEnv } from "@/lib/env";
+import { resolveInternalTaskToken } from "@/lib/internal-task-token";
 import { callAdvance } from "@/lib/utils/advance";
-
-// 启动时验证环境变量
-try {
-  validateEnv();
-} catch (e) {
-  console.error("[Worker] 环境变量验证失败:", (e as Error).message);
-  process.exit(1);
-}
-
-// 验证 INTERNAL_TASK_TOKEN
-if (!env.INTERNAL_TASK_TOKEN || env.INTERNAL_TASK_TOKEN.includes("please-change")) {
-  console.error("[Worker] 错误: INTERNAL_TASK_TOKEN 未设置或为默认值");
-  console.error("[Worker] 请设置 INTERNAL_TASK_TOKEN 环境变量用于 Worker 内部通信");
-  process.exit(1);
-}
 
 // BullMQ 与项目 ioredis 类型不兼容，运行时兼容
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +14,7 @@ import { runAnalyzeNovel } from "@/lib/workflow/handlers/analyze-novel";
 import { runReviewAnalysis } from "@/lib/workflow/handlers/review-analysis";
 import { runStoryToScript } from "@/lib/workflow/handlers/story-to-script";
 import { runScriptToStoryboard } from "@/lib/workflow/handlers/script-to-storyboard";
-import { advanceRun, failRun, updateStepInputSummary, getRunById } from "@/lib/workflow/service";
+import { failRun, updateStepInputSummary, getRunById } from "@/lib/workflow/service";
 import { generateImage } from "@/lib/generators/image-client";
 import { generateSpeech } from "@/lib/generators/tts-client";
 import { runVoiceExtract } from "@/lib/workflow/handlers/voice-extract";
@@ -36,107 +22,6 @@ import { composeEpisodeVideo } from "@/lib/video/compose-episode";
 import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
 
-// ==================== beta0.55 新增：熔断器机制 ====================
-class CircuitBreaker {
-  private failures = 0;
-  private threshold = 5;
-  private cooldownMs = 60000; // 1 分钟冷却
-  private lastFailureTime: number = 0;
-  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
-
-  async execute<T>(operation: () => Promise<T>, context: string): Promise<T> {
-    if (this.state === 'OPEN') {
-      const now = Date.now();
-      if (now - this.lastFailureTime < this.cooldownMs) {
-        throw new Error(`Circuit breaker OPEN for ${context}: too many failures, cooling down`);
-      }
-      this.state = 'HALF_OPEN';
-    }
-
-    try {
-      const result = await operation();
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
-      throw error;
-    }
-  }
-
-  private onSuccess() {
-    this.failures = 0;
-    this.state = 'CLOSED';
-  }
-
-  private onFailure() {
-    this.failures++;
-    this.lastFailureTime = Date.now();
-    if (this.failures >= this.threshold) {
-      this.state = 'OPEN';
-    }
-  }
-}
-
-// API 调用熔断器实例
-const apiCircuitBreakers = {
-  llm: new CircuitBreaker(),
-  image: new CircuitBreaker(),
-  voice: new CircuitBreaker(),
-  video: new CircuitBreaker(),
-};
-
-// ==================== beta0.55 新增：错误分类处理 ====================
-enum ErrorSeverity {
-  CRITICAL = 'critical',     // 必须解决：如 API 密钥无效
-  RETRYABLE = 'retryable',   // 可重试：如网络超时
-  DEGRADABLE = 'degradable', // 可降级：如某张图失败用占位图
-}
-
-function classifyError(error: Error): { severity: ErrorSeverity; shouldRetry: boolean } {
-  const message = error.message.toLowerCase();
-  
-  // 关键错误 - 不重试
-  if (message.includes('api key') || message.includes('unauthorized') || message.includes('forbidden')) {
-    return { severity: ErrorSeverity.CRITICAL, shouldRetry: false };
-  }
-  
-  // 可降级错误
-  if (message.includes('timeout') || message.includes('network') || message.includes('econnrefused')) {
-    return { severity: ErrorSeverity.RETRYABLE, shouldRetry: true };
-  }
-  
-  // 默认可重试
-  return { severity: ErrorSeverity.DEGRADABLE, shouldRetry: true };
-}
-
-// ==================== beta0.55 新增：带重试的包装函数 ====================
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  context: string,
-  maxRetries = TASK_RETRY_OPTIONS.attempts
-): Promise<T> {
-  let lastError: Error | undefined;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-      const { severity, shouldRetry } = classifyError(lastError);
-      
-      if (!shouldRetry || attempt === maxRetries) {
-        throw lastError;
-      }
-      
-      // 指数退避等待
-      const delay = TASK_RETRY_OPTIONS.backoff.delay * Math.pow(2, attempt - 1);
-      console.log(`[Worker] ${context} 失败 (尝试 ${attempt}/${maxRetries})，${delay}ms 后重试...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError!;
-}
 
 const concurrency = {
   image: env.QUEUE_CONCURRENCY_IMAGE,
@@ -153,14 +38,6 @@ const TASK_TIMEOUTS = {
   video: 60 * 60 * 1000,   // 60 分钟（长视频合成）
 };
 
-// 重试配置
-const TASK_RETRY_OPTIONS = {
-  attempts: 3,                    // 最多重试 3 次
-  backoff: {
-    type: 'exponential' as const, // 指数退避
-    delay: 2000,                  // 初始延迟 2 秒
-  },
-};
 
 async function processTextJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
@@ -211,12 +88,24 @@ async function processTextJob(job: { data: TaskJobData }) {
         where: { id: targetId },
         include: { characters: true, locations: true },
       });
-      // 运行复查 Agent，评估分析结果质量
+      // 查询剧集摘要（取前5集，每集最多200字，供复查 Agent 实质性评估）
+      const episodesForReview = await prisma.novelPromotionEpisode.findMany({
+        where: { id: { in: episodeIds } },
+        select: { name: true, novelText: true },
+        take: 5,
+      });
+      const episodeSummaries = episodesForReview.map(
+        (e) => `${e.name}：${(e.novelText ?? "").slice(0, 200)}`
+      );
+      // 运行复查 Agent，评估分析结果质量（传入实质内容）
       const review = await runReviewAnalysis({
         userId,
         episodeCount: episodeIds.length,
         characterCount: np?.characters?.length ?? 0,
         locationCount: np?.locations?.length ?? 0,
+        characters: (np?.characters ?? []).map((c: { name: string }) => c.name).slice(0, 10),
+        locations: (np?.locations ?? []).map((l: { name: string }) => l.name).slice(0, 10),
+        episodeSummaries,
       });
       
       // 记录复查结果
@@ -400,6 +289,7 @@ async function processImageJob(job: { data: TaskJobData }) {
       let done = 0;
       let failed = 0;
       const failedPanels: string[] = [];
+      const total = panels.length;
 
       for (const panel of panels) {
         const basePrompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
@@ -431,6 +321,12 @@ async function processImageJob(job: { data: TaskJobData }) {
           failedPanels.push(panel.id);
           console.error("[Worker:image] panel", panel.id, (e as Error).message);
         }
+        // 更新进度（百分比）
+        const progress = total > 0 ? Math.round(((done + failed) / total) * 100) : 0;
+        await prisma.task.update({
+          where: { id: taskId },
+          data: { progress, payload: { episodeId, done, total } as object },
+        }).catch(() => {});
       }
       
       // 如果有失败的图片，记录警告
@@ -677,36 +573,52 @@ function withTimeout<T>(
   };
 }
 
-const textWorker = new Worker<TaskJobData>(
-  QUEUE_NAME.TEXT,
-  withTimeout(processTextJob, TASK_TIMEOUTS.text, "Text"),
-  { connection: workerConnection, concurrency: concurrency.text }
-);
+let workers: Worker<TaskJobData>[] = [];
 
-const imageWorker = new Worker<TaskJobData>(
-  QUEUE_NAME.IMAGE,
-  withTimeout(processImageJob, TASK_TIMEOUTS.image, "Image"),
-  { connection: workerConnection, concurrency: concurrency.image }
-);
+function registerWorkers(): void {
+  const textWorker = new Worker<TaskJobData>(
+    QUEUE_NAME.TEXT,
+    withTimeout(processTextJob, TASK_TIMEOUTS.text, "Text"),
+    { connection: workerConnection, concurrency: concurrency.text }
+  );
 
-const voiceWorker = new Worker<TaskJobData>(
-  QUEUE_NAME.VOICE,
-  withTimeout(processVoiceJob, TASK_TIMEOUTS.voice, "Voice"),
-  { connection: workerConnection, concurrency: concurrency.voice }
-);
+  const imageWorker = new Worker<TaskJobData>(
+    QUEUE_NAME.IMAGE,
+    withTimeout(processImageJob, TASK_TIMEOUTS.image, "Image"),
+    { connection: workerConnection, concurrency: concurrency.image }
+  );
 
-const videoWorker = new Worker<TaskJobData>(
-  QUEUE_NAME.VIDEO,
-  withTimeout(processVideoJob, TASK_TIMEOUTS.video, "Video"),
-  { connection: workerConnection, concurrency: concurrency.video }
-);
+  const voiceWorker = new Worker<TaskJobData>(
+    QUEUE_NAME.VOICE,
+    withTimeout(processVoiceJob, TASK_TIMEOUTS.voice, "Voice"),
+    { connection: workerConnection, concurrency: concurrency.voice }
+  );
 
-const workers = [textWorker, imageWorker, voiceWorker, videoWorker];
+  const videoWorker = new Worker<TaskJobData>(
+    QUEUE_NAME.VIDEO,
+    withTimeout(processVideoJob, TASK_TIMEOUTS.video, "Video"),
+    { connection: workerConnection, concurrency: concurrency.video }
+  );
 
-workers.forEach((w) => {
-  w.on("ready", () => console.log(`[Workers] ${w.name} ready`));
-  w.on("error", (err: Error) => console.error(`[Workers] ${w.name} error:`, err.message));
-});
+  workers = [textWorker, imageWorker, voiceWorker, videoWorker];
+
+  workers.forEach((w) => {
+    w.on("ready", () => console.log(`[Workers] ${w.name} ready`));
+    w.on("error", (err: Error) => console.error(`[Workers] ${w.name} error:`, err.message));
+  });
+}
+
+void (async function workerBootstrap() {
+  try {
+    validateEnv();
+    await resolveInternalTaskToken();
+    registerWorkers();
+    console.log("[Workers] 已启动（内部令牌：环境变量或设置页数据库）");
+  } catch (e) {
+    console.error("[Worker] 启动失败:", (e as Error).message);
+    process.exit(1);
+  }
+})();
 
 async function shutdown() {
   console.log("[Workers] 正在关闭...");

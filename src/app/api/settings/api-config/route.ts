@@ -60,6 +60,17 @@ export async function POST(req: Request) {
       }
     }
 
+    type TokenField = { internalTaskToken?: string | null };
+    const tokenPatch: TokenField = {};
+    if (Object.prototype.hasOwnProperty.call(body, "internalTaskToken")) {
+      const v = body.internalTaskToken;
+      if (v === null || v === "") {
+        tokenPatch.internalTaskToken = null;
+      } else if (typeof v === "string" && v.trim()) {
+        tokenPatch.internalTaskToken = v.trim();
+      }
+    }
+
     await prisma.userPreference.upsert({
       where: { userId },
       create: {
@@ -75,6 +86,7 @@ export async function POST(req: Request) {
         analysisModel: body.analysisModel ?? undefined,
         storyboardModel: body.storyboardModel ?? undefined,
         videoModel: body.videoModel ?? undefined,
+        ...tokenPatch,
       },
       update: {
         llmBaseUrl: body.llmBaseUrl ?? undefined,
@@ -88,6 +100,7 @@ export async function POST(req: Request) {
         analysisModel: body.analysisModel ?? undefined,
         storyboardModel: body.storyboardModel ?? undefined,
         videoModel: body.videoModel ?? undefined,
+        ...tokenPatch,
       },
     });
 
@@ -138,6 +151,8 @@ export async function GET() {
       analysisModel: prefs?.analysisModel ?? "",
       storyboardModel: prefs?.storyboardModel ?? "",
       videoModel: prefs?.videoModel ?? "",
+      /** 是否已在数据库保存 Worker 令牌（不回传明文） */
+      hasWorkerInternalToken: !!(prefs?.internalTaskToken && String(prefs.internalTaskToken).trim()),
       providers: payload.providers,
       defaults: payload.defaults ?? {},
     });

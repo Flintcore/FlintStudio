@@ -1,8 +1,9 @@
 import { getCurrentSession } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AppHeader } from "../../../../components/app-header";
+import { EpisodeVideoPlayer } from "./episode-video-player";
+import { PanelGrid } from "./panel-grid";
 
 export default async function EpisodePage({
   params,
@@ -75,29 +76,12 @@ export default async function EpisodePage({
                   <p className="mb-3 text-sm text-[var(--muted)]">
                     共 {sb.panelCount} 镜
                   </p>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {sb.panels.map((panel) => (
-                      <div
-                        key={panel.id}
-                        className="overflow-hidden rounded-xl border border-[var(--border)] transition-smooth hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)]"
-                      >
-                        {panel.imageUrl ? (
-                          <img
-                            src={panel.imageUrl}
-                            alt={panel.description ?? ""}
-                            className="h-48 w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-48 items-center justify-center bg-[var(--background)] text-[var(--muted)]">
-                            待出图
-                          </div>
-                        )}
-                        <div className="p-3 text-xs text-[var(--muted)]">
-                          {panel.description ?? panel.imagePrompt ?? "—"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <PanelGrid panels={sb.panels.map((p) => ({
+                    id: p.id,
+                    imageUrl: p.imageUrl,
+                    description: p.description,
+                    imagePrompt: p.imagePrompt,
+                  }))} />
                 </div>
               ))}
             </div>
@@ -121,19 +105,12 @@ export default async function EpisodePage({
           </section>
         )}
 
-        {episode.videoUrl && (
-          <section className="mt-8 animate-slide-up animation-delay-250">
-            <h2 className="font-medium text-[var(--foreground)]">成片</h2>
-            <video
-              className="mt-3 max-h-[70vh] w-full rounded-2xl border border-[var(--border)] bg-black"
-              controls
-              src={episode.videoUrl}
-              playsInline
-            />
-          </section>
-        )}
+        <section className="mt-8 animate-slide-up animation-delay-250">
+          <h2 className="font-medium text-[var(--foreground)]">成片</h2>
+          <EpisodeVideoPlayer episodeId={episodeId} initialVideoUrl={episode.videoUrl ?? null} />
+        </section>
 
-        {episode.clips.length === 0 && episode.storyboards.length === 0 && !episode.videoUrl && (
+        {episode.clips.length === 0 && episode.storyboards.length === 0 && (
           <p className="mt-8 text-[var(--muted)]">
             暂无分场与分镜数据，请在工作流中完成「剧本分析 → 分场 → 分镜」后刷新。
           </p>
