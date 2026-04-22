@@ -21,6 +21,9 @@ import { runVoiceExtract } from "@/lib/workflow/handlers/voice-extract";
 import { composeEpisodeVideo } from "@/lib/video/compose-episode";
 import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
+import { existsSync } from "fs";
+
+// 全局变量声明（用于内存监控）
 
 
 const concurrency = {
@@ -339,12 +342,14 @@ async function processImageJob(job: { data: TaskJobData }) {
           failedPanels.push(panel.id);
           console.error("[Worker:image] panel", panel.id, (e as Error).message);
         }
-        // 更新进度（百分比）
-        const progress = total > 0 ? Math.round(((done + failed) / total) * 100) : 0;
-        await prisma.task.update({
-          where: { id: taskId },
-          data: { progress, payload: { episodeId, done, total } as object },
-        }).catch(() => {});
+        // 每 5 个面板或完成时更新进度（减少数据库写入）
+        if ((done + failed) % 5 === 0 || done + failed === total) {
+          const progress = total > 0 ? Math.round(((done + failed) / total) * 100) : 0;
+          await prisma.task.update({
+            where: { id: taskId },
+            data: { progress, payload: { episodeId, done, total } as object },
+          }).catch(() => {});
+        }
       }
       
       // 如果有失败的图片，记录警告
@@ -383,7 +388,6 @@ const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
 const EPISODES_DIR = path.join(DATA_DIR, "episodes");
 
-import { existsSync } from "fs";
 
 async function processVoiceJob(job: { data: TaskJobData }) {
   const { type, taskId, userId, projectId, targetId, payload, runId } = job.data;
@@ -690,3 +694,22 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("[Workers] 未处理的 Promise 拒绝:", promise, "原因:", reason);
   void shutdown();
 });
+
+// 内存监控 - 防止内存泄漏
+const MEMORY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 分钟
+const MEMORY_THRESHOLD_MB = 1024; // 1GB
+
+setInterval(() => {
+  const usage = process.memoryUsage();
+  const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
+  const rssMB = Math.round(usage.rss / 1024 / 1024);
+
+  if (heapUsedMB > MEMORY_THRESHOLD_MB) {
+    console.warn(`[Workers] 内存使用较高: RSS=${rssMB}MB, Heap=${heapUsedMB}MB`);
+    // 建议垃圾回收（如果可用）
+    if (global.gc) {
+      global.gc();
+      console.log("[Workers] 已触发垃圾回收");
+    }
+  }
+}, MEMORY_CHECK_INTERVAL);
