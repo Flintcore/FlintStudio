@@ -115,7 +115,7 @@ export function PromptConfigForm() {
       if (!res.ok) throw new Error("保存失败");
       setMessage({ type: "success", text: "提示词已保存" });
       setTimeout(() => setMessage(null), 3000);
-    } catch (e) {
+    } catch {
       setMessage({ type: "error", text: "保存失败，请重试" });
     } finally {
       setSaving(false);
