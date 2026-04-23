@@ -386,7 +386,7 @@ async function processImageJob(job: { data: TaskJobData }) {
 
 const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
 const VOICE_DIR = path.join(DATA_DIR, "voice");
-const EPISODES_DIR = path.join(DATA_DIR, "episodes");
+const _EPISODES_DIR = path.join(DATA_DIR, "episodes");
 
 
 async function processVoiceJob(job: { data: TaskJobData }) {

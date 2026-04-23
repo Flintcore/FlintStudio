@@ -2,7 +2,7 @@
  * 统一错误处理工具
  */
 
-import { logger } from "@/lib/logger";
+import { logger, logError } from "@/lib/logger";
 
 export interface AppError {
   code: string;
@@ -18,7 +18,7 @@ export function handleError(error: unknown, context?: string): AppError {
 
   // Error 对象
   if (error instanceof Error) {
-    logger.error(context || "Error occurred", error);
+    logError(error, { context });
     return {
       code: "INTERNAL_ERROR",
       message: error.message,
@@ -27,6 +27,7 @@ export function handleError(error: unknown, context?: string): AppError {
 
   // 字符串错误
   if (typeof error === "string") {
+    logger.error({ context, error }, error);
     return {
       code: "INTERNAL_ERROR",
       message: error,
@@ -34,7 +35,7 @@ export function handleError(error: unknown, context?: string): AppError {
   }
 
   // 未知错误
-  logger.error("Unknown error", undefined, { error, context });
+  logger.error({ error, context }, "Unknown error");
   return {
     code: "UNKNOWN_ERROR",
     message: "An unknown error occurred",
