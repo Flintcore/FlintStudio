@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Film, Image, Mic, Clock } from "lucide-react";
+import { Film, Image as ImageIcon, Mic, Clock, Clapperboard } from "lucide-react";
 
 type Stats = {
   episodeCount: number;
@@ -51,12 +51,18 @@ export function ProjectStats({ projectId }: { projectId: string }) {
       sub: stats.completedEpisodes > 0 ? "已完成" : "已生成",
     },
     {
-      icon: <Image className="h-4 w-4" />,
+      icon: <ImageIcon className="h-4 w-4" />,
       label: "分镜图",
       value: stats.imagesGenerated > 0
         ? `${stats.imagesGenerated} / ${stats.panelCount}`
         : String(stats.panelCount),
       sub: stats.imagesGenerated > 0 ? "已出图" : "分镜数",
+    },
+    {
+      icon: <Clapperboard className="h-4 w-4" />,
+      label: "场次数",
+      value: String(stats.clipCount),
+      sub: "总场次",
     },
     {
       icon: <Mic className="h-4 w-4" />,
@@ -76,7 +82,7 @@ export function ProjectStats({ projectId }: { projectId: string }) {
 
   return (
     <section className="mt-6 animate-fade-in">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {cards.map((c) => (
           <div
             key={c.label}
