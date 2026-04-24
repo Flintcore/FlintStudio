@@ -88,7 +88,7 @@ model UserPreference {
   characterModel  String?
   locationModel   String?
   storyboardModel String?
-  videoModel      String?
+  videoModel      String?  @default("seedance-v2")
   // 新增：默认LLM模型（自适应系统使用）
   defaultLlmModel String? @default("gpt-4o-mini")
   // 新增：自定义模型配置 JSON
@@ -124,7 +124,7 @@ model NovelPromotionProject {
   projectId       String                    @unique
   analysisModel   String?
   imageModel      String?
-  videoModel      String?
+  videoModel      String?  @default("seedance-v2")
   characterModel  String?
   locationModel   String?
   storyboardModel String?
