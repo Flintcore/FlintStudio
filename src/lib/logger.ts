@@ -4,6 +4,7 @@
  */
 
 import pino from "pino";
+import { addToLogBuffer } from "./log-buffer";
 
 // 日志级别从环境变量读取，默认 info
 const LOG_LEVEL = process.env.LOG_LEVEL || "info";
@@ -11,26 +12,55 @@ const LOG_LEVEL = process.env.LOG_LEVEL || "info";
 // 判断是否为开发环境
 const isDev = process.env.NODE_ENV === "development";
 
-// 创建 logger 实例
-export const logger = pino({
-  level: LOG_LEVEL,
-  // 开发环境使用美化输出，生产使用 JSON
-  transport: isDev
-    ? {
-        target: "pino-pretty",
-        options: {
-          colorize: true,
-          translateTime: "yyyy-mm-dd HH:MM:ss",
-          ignore: "pid,hostname",
-        },
-      }
-    : undefined,
-  // 基础字段
-  base: {
-    env: process.env.NODE_ENV,
-    version: process.env.npm_package_version || "0.56.0",
+// 自定义传输，同时输出到缓冲区和 pino
+const customTransport = {
+  write: (log: string) => {
+    try {
+      const parsed = JSON.parse(log);
+      const { level, msg, message, ...context } = parsed;
+      const levelLabel = pino.levels.labels[level] || "info";
+      addToLogBuffer(levelLabel, msg || message || "", context);
+    } catch {
+      // 解析失败时静默处理
+    }
+    return true;
   },
-});
+};
+
+// 创建 logger 实例
+const pinoLogger = pino(
+  {
+    level: LOG_LEVEL,
+    // 开发环境使用美化输出，生产使用 JSON
+    transport: isDev
+      ? {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "yyyy-mm-dd HH:MM:ss",
+            ignore: "pid,hostname",
+          },
+        }
+      : undefined,
+    // 基础字段
+    base: {
+      env: process.env.NODE_ENV,
+      version: process.env.npm_package_version || "0.56.0",
+    },
+  },
+  customTransport
+);
+
+// 包装 logger，确保钩子被调用
+export const logger = {
+  trace: pinoLogger.trace.bind(pinoLogger),
+  debug: pinoLogger.debug.bind(pinoLogger),
+  info: pinoLogger.info.bind(pinoLogger),
+  warn: pinoLogger.warn.bind(pinoLogger),
+  error: pinoLogger.error.bind(pinoLogger),
+  fatal: pinoLogger.fatal.bind(pinoLogger),
+  child: pinoLogger.child.bind(pinoLogger),
+};
 
 /**
  * 创建带上下文的子 logger
