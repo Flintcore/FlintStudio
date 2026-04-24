@@ -22,6 +22,7 @@ import { composeEpisodeVideo } from "@/lib/video/compose-episode";
 import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
 import { existsSync } from "fs";
+import { logger, logTask } from "@/lib/logger";
 
 // 全局变量声明（用于内存监控）
 
@@ -112,9 +113,9 @@ async function processTextJob(job: { data: TaskJobData }) {
       });
       
       // 记录复查结果
-      console.log(`[Worker] 剧本分析复查结果: 评分 ${review.score}/100, 通过: ${review.passed}`);
+      logger.info({ type: "review", score: review.score, passed: review.passed }, "剧本分析复查完成");
       if (!review.passed && review.issues.length > 0) {
-        console.warn(`[Worker] 复查发现问题: ${review.issues.join("; ")}`);
+        logger.warn({ type: "review_issues", issues: review.issues }, "复查发现问题");
       }
       await prisma.task.update({
         where: { id: taskId },
@@ -292,7 +293,7 @@ async function processImageJob(job: { data: TaskJobData }) {
 
       // 如果没有面板，任务直接完成
       if (panels.length === 0) {
-        console.warn(`[Worker:image] 剧集 ${episodeId} 没有面板需要处理`);
+        logger.warn({ type: "image_task", episodeId }, "剧集没有面板需要处理");
         await prisma.task.update({
           where: { id: taskId },
           data: {
@@ -310,7 +311,7 @@ async function processImageJob(job: { data: TaskJobData }) {
       const failedPanels: string[] = [];
       const total = panels.length;
 
-      console.log(`[Worker:image] 开始处理 ${total} 个面板，剧集 ${episodeId}`);
+      logger.info({ type: "image_task_start", episodeId, total }, "开始处理图像生成");
 
       for (const panel of panels) {
         const basePrompt = panel.imagePrompt?.trim() || panel.description?.trim() || "cinematic scene";
@@ -340,7 +341,7 @@ async function processImageJob(job: { data: TaskJobData }) {
         } catch (e) {
           failed++;
           failedPanels.push(panel.id);
-          console.error("[Worker:image] panel", panel.id, (e as Error).message);
+          logger.error({ type: "image_error", panelId: panel.id, error: (e as Error).message }, "图像生成失败");
         }
         // 每 5 个面板或完成时更新进度（减少数据库写入）
         if ((done + failed) % 5 === 0 || done + failed === total) {
@@ -354,10 +355,10 @@ async function processImageJob(job: { data: TaskJobData }) {
       
       // 如果有失败的图片，记录警告
       if (failed > 0) {
-        console.warn(`[Worker:image] 集 ${episodeId} 中 ${failed}/${panels.length} 个面板生成失败`);
+        logger.warn({ type: "image_batch_warning", episodeId, failed, total: panels.length }, "部分图像生成失败");
       }
 
-      console.log(`[Worker:image] 完成处理 ${total} 个面板，成功 ${done}，失败 ${failed}`);
+      logger.info({ type: "image_batch_complete", episodeId, total, done, failed }, "图像批量处理完成");
       
       await prisma.task.update({
         where: { id: taskId },
@@ -381,7 +382,7 @@ async function processImageJob(job: { data: TaskJobData }) {
     return;
   }
 
-  console.log("[Worker:image]", type, taskId);
+  logger.debug({ type: "image_task", taskType: type, taskId }, "图像任务处理");
 }
 
 const DATA_DIR = env.DATA_DIR || path.join(process.cwd(), "data");
@@ -465,7 +466,7 @@ async function processVoiceJob(job: { data: TaskJobData }) {
           successCount++;
         } catch (e) {
           failCount++;
-          console.error("[Worker:voice] TTS failed for line", line.id, (e as Error).message);
+          logger.error({ type: "tts_error", lineId: line.id, error: (e as Error).message }, "TTS 生成失败");
         }
       }
       
@@ -490,7 +491,7 @@ async function processVoiceJob(job: { data: TaskJobData }) {
     return;
   }
 
-  console.log("[Worker:voice]", type, taskId);
+  logger.debug({ type: "voice_task", taskType: type, taskId }, "语音任务处理");
 }
 
 async function processVideoJob(job: { data: TaskJobData }) {
@@ -556,7 +557,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
         const vl = episode.voiceLines[i];
         const audioPath = path.join(VOICE_DIR, `${vl.id}.mp3`);
         if (!existsSync(audioPath)) {
-          console.warn(`[Worker:video] 配音文件不存在，跳过: ${audioPath}`);
+          logger.warn({ type: "audio_missing", audioPath }, "配音文件不存在");
           skippedAudioCount++;
           continue;
         }
@@ -572,7 +573,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
       }
 
       if (skippedAudioCount > 0) {
-        console.warn(`[Worker:video] 共跳过 ${skippedAudioCount} 个缺失的配音文件`);
+        logger.warn({ type: "audio_skip_summary", skippedCount: skippedAudioCount }, "跳过缺失配音文件");
       }
       const { videoPath } = await composeEpisodeVideo({
         episodeId,
@@ -604,7 +605,7 @@ async function processVideoJob(job: { data: TaskJobData }) {
     return;
   }
 
-  console.log("[Worker:video]", type, taskId);
+  logger.debug({ type: "video_task", taskType: type, taskId }, "视频任务处理");
 }
 
 // 包装处理器添加超时控制
@@ -657,8 +658,8 @@ function registerWorkers(): void {
   workers = [textWorker, imageWorker, voiceWorker, videoWorker];
 
   workers.forEach((w) => {
-    w.on("ready", () => console.log(`[Workers] ${w.name} ready`));
-    w.on("error", (err: Error) => console.error(`[Workers] ${w.name} error:`, err.message));
+    w.on("ready", () => logger.info({ type: "worker_ready", name: w.name }, `Worker ${w.name} ready`));
+    w.on("error", (err: Error) => logger.error({ type: "worker_error", name: w.name, error: err.message }, `Worker ${w.name} error`));
   });
 }
 
@@ -667,17 +668,17 @@ void (async function workerBootstrap() {
     validateEnv();
     await resolveInternalTaskToken();
     registerWorkers();
-    console.log("[Workers] 已启动（内部令牌：环境变量或设置页数据库）");
+    logger.info({ type: "workers_started" }, "Workers started");
   } catch (e) {
-    console.error("[Worker] 启动失败:", (e as Error).message);
+    logger.error({ type: "worker_startup_error", error: (e as Error).message }, "Worker startup failed");
     process.exit(1);
   }
 })();
 
 async function shutdown() {
-  console.log("[Workers] 正在关闭...");
+  logger.info({ type: "workers_shutdown" }, "Workers shutting down...");
   await Promise.all(workers.map((w) => w.close()));
-  console.log("[Workers] 已关闭");
+  logger.info({ type: "workers_closed" }, "Workers closed");
   process.exit(0);
 }
 
