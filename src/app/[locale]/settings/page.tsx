@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCustomProvidersPayload } from "@/lib/api-config";
 import { ApiConfigForm } from "./api-config-form";
 import { PromptConfigForm } from "./prompt-config-form";
+import { LogViewer } from "./log-viewer";
 import { AppHeader } from "../components/app-header";
 
 export default async function SettingsPage() {
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
             }}
           />
           <PromptConfigForm />
+          <LogViewer />
         </div>
       </main>
     </div>
