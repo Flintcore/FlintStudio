@@ -67,11 +67,11 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
  * 用户相关查询缓存
  */
 export const userCache = {
-  async getUser(userId: string, fetcher: () => Promise<unknown>) {
+  async getUser<T>(userId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.user(userId), { ttl: 600 });
   },
 
-  async getUserPrefs(userId: string, fetcher: () => Promise<unknown>) {
+  async getUserPrefs<T>(userId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.userPrefs(userId), { ttl: 300 });
   },
 
@@ -85,11 +85,11 @@ export const userCache = {
  * 项目相关查询缓存
  */
 export const projectCache = {
-  async getProject(projectId: string, fetcher: () => Promise<unknown>) {
+  async getProject<T>(projectId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.project(projectId), { ttl: 300 });
   },
 
-  async getProjectList(userId: string, fetcher: () => Promise<unknown>) {
+  async getProjectList<T>(userId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.projectList(userId), { ttl: 60 });
   },
 
@@ -106,7 +106,7 @@ export const projectCache = {
  * 剧集相关查询缓存
  */
 export const episodeCache = {
-  async getEpisode(episodeId: string, fetcher: () => Promise<unknown>) {
+  async getEpisode<T>(episodeId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.episode(episodeId), { ttl: 300 });
   },
 
@@ -119,7 +119,7 @@ export const episodeCache = {
  * 工作流运行缓存
  */
 export const workflowCache = {
-  async getRun(runId: string, fetcher: () => Promise<unknown>) {
+  async getRun<T>(runId: string, fetcher: () => Promise<T>) {
     return withCache(fetcher, cacheKeys.workflowRun(runId), { ttl: 60 });
   },
 

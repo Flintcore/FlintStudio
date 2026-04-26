@@ -1,6 +1,7 @@
 import { getCurrentSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { projectCache } from "@/lib/cache-wrapper";
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
     await prisma.novelPromotionProject.create({
       data: { projectId: project.id },
     });
+
+    // 使项目列表缓存失效
+    await projectCache.invalidateProjectList(session.user.id);
+
     return NextResponse.json({ id: project.id, name: project.name }, { status: 201 });
   } catch (e) {
     console.error("[projects/create]", e);

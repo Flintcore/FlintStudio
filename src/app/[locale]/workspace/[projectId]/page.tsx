@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { LayoutList, Film, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { projectCache } from "@/lib/cache-wrapper";
 import { WorkflowRunForm } from "./workflow-run-form";
 import { RunList } from "./run-list";
 import { AppHeader } from "../../components/app-header";
@@ -16,10 +17,12 @@ export default async function ProjectPage({
   const session = await getCurrentSession();
   const { projectId } = await params;
 
-  const project = await prisma.project.findFirst({
-    where: { id: projectId, userId: session.user.id },
-    include: { novelPromotion: true },
-  });
+  const project = await projectCache.getProject(projectId, () =>
+    prisma.project.findFirst({
+      where: { id: projectId, userId: session.user.id },
+      include: { novelPromotion: true },
+    })
+  );
   if (!project) notFound();
 
   const episodes = project.novelPromotion

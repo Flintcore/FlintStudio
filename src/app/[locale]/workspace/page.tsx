@@ -1,6 +1,7 @@
 import { getCurrentSession } from "@/lib/auth";
 import { FolderOpen } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { projectCache } from "@/lib/cache-wrapper";
 import { AppHeaderWorkspace } from "../components/app-header";
 import { ProjectCard } from "./project-card";
 import { CreateProjectButton } from "./create-project-button";
@@ -8,11 +9,13 @@ import { CreateProjectButton } from "./create-project-button";
 export default async function WorkspacePage() {
   const session = await getCurrentSession();
 
-  const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
-    orderBy: { updatedAt: "desc" },
-    take: 50,
-  });
+  const projects = await projectCache.getProjectList(session.user.id, () =>
+    prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+    })
+  );
 
   return (
     <div className="min-h-screen page-content-bg">
