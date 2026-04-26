@@ -7,6 +7,66 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-04-26
+
+### Added
+
+#### Week 1: Feature & Observability
+
+- **Seedance 2.0 Video API Integration**
+  - `src/lib/generators/video-client.ts` - Full API client for video generation
+  - Support for text-to-video and image-to-video generation
+  - Async polling mechanism with configurable timeout
+  - Exponential backoff retry logic
+  - Default video model set to "seedance-v2"
+
+- **Runtime Log Viewer**
+  - `src/lib/log-buffer.ts` - In-memory log storage (1000 entries)
+  - `src/app/api/logs/route.ts` - REST API for log retrieval
+  - `src/app/[locale]/settings/log-viewer.tsx` - Real-time log viewer UI
+  - Log statistics (total, errors, warnings, tasks)
+  - Filtering by level and type
+  - Expandable JSON context
+  - Auto-refresh with 5-second intervals
+
+#### Week 2: Performance & Caching
+
+- **Redis/Memory Cache Layer**
+  - `src/lib/cache.ts` - Dual-mode cache (Redis with memory fallback)
+  - `src/lib/cache-wrapper.ts` - High-level cache utilities
+  - Cache helpers for users, projects, episodes, workflows
+
+- **Performance Hooks**
+  - `src/lib/hooks/use-performance.ts`
+  - `useRenderPerformance` - Component render tracking
+  - `useDebounce`, `useThrottle` - Event optimization
+  - `useVirtualList` - Large list virtualization
+
+#### Week 3: API Reliability & Batch Operations
+
+- **Rate Limiting**
+  - `src/lib/rate-limiter.ts` - Sliding window rate limiter
+  - Per-endpoint configuration
+  - Rate limit headers
+
+- **Batch Operations**
+  - `src/lib/batch-operations.ts`
+  - Bulk task updates, workflow step creation
+  - Preload functions to prevent N+1 queries
+
+#### Week 4: Data Management & Backup
+
+- **Project Backup System**
+  - `src/lib/backup.ts` - Project export utilities
+  - Full hierarchy export
+  - `POST /api/projects/[projectId]/backup`
+  - Automatic backup rotation (keep last 5)
+
+### Changed
+
+- Prisma schema defaults for video model to "seedance-v2"
+- Enhanced logger with buffer integration
+
 ## [Beta 0.55] - 2026-03-16
 
 ### 中文
