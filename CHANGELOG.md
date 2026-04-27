@@ -7,6 +7,17 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### Added (2026-04-27)
+
+- **Global Search** - Project/episode/character/location search with Cmd+K shortcut
+- **PWA Support** - Service Worker for offline support and resource caching
+- **Build Optimizations** - Security headers, long-term caching, image optimization
+- **Database Monitoring** - Query metrics, health checks, connection monitoring
+- **Core Web Vitals** - LCP, FID, CLS, FCP, TTFB tracking and logging
+- **Error Boundaries** - React error boundaries with retry functionality
+- **API Client** - Unified API client with retry, timeout, and error handling
+- **Cache Integration** - Redis/Memory cache applied to workspace pages
+
 ## [0.56.0] - 2026-04-26
 
 ### Added
