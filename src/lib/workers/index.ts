@@ -23,6 +23,7 @@ import { getImagePromptSuffix } from "@/lib/workflow/visual-style";
 import path from "path";
 import { existsSync } from "fs";
 import { logger, logTask } from "@/lib/logger";
+import { recordTaskStart, recordTaskComplete } from "./metrics";
 
 // 全局变量声明（用于内存监控）
 
@@ -615,16 +616,39 @@ function withTimeout<T>(
   jobType: string
 ) {
   return async (job: { data: TaskJobData; id?: string }): Promise<T> => {
+    const { type, taskId } = job.data;
     const startTime = Date.now();
-    return Promise.race([
-      processor(job),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => {
-          const duration = Date.now() - startTime;
-          reject(new Error(`${jobType} 任务超时 (${duration}ms > ${timeoutMs}ms)`));
-        }, timeoutMs)
-      ),
-    ]);
+
+    // 记录任务开始
+    recordTaskStart(type, taskId);
+    logTask(type, taskId, "running");
+
+    try {
+      const result = await Promise.race([
+        processor(job),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => {
+            const duration = Date.now() - startTime;
+            reject(new Error(`${jobType} 任务超时 (${duration}ms > ${timeoutMs}ms)`));
+          }, timeoutMs)
+        ),
+      ]);
+
+      // 记录任务完成
+      const duration = Date.now() - startTime;
+      await recordTaskComplete(taskId, "completed");
+      logTask(type, taskId, "completed", { duration });
+
+      return result;
+    } catch (error) {
+      // 记录任务失败
+      const errorMsg = (error as Error).message;
+      const isTimeout = errorMsg.includes("超时") || errorMsg.includes("timeout");
+      await recordTaskComplete(taskId, isTimeout ? "timeout" : "failed", errorMsg);
+      logTask(type, taskId, "failed", { error: errorMsg });
+
+      throw error;
+    }
   };
 }
 
