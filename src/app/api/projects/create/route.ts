@@ -2,12 +2,23 @@ import { getCurrentSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { projectCache } from "@/lib/cache-wrapper";
+import { validateObject, projectCreateSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
     const session = await getCurrentSession();
     const body = await request.json().catch(() => ({}));
-    const name = body.name?.trim() || `项目 ${new Date().toLocaleDateString("zh-CN")}`;
+
+    // 验证输入
+    const validation = validateObject(body, projectCreateSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "验证失败", details: validation.errors },
+        { status: 400 }
+      );
+    }
+
+    const name = (validation.data?.name as string) || `项目 ${new Date().toLocaleDateString("zh-CN")}`;
     const project = await prisma.project.create({
       data: {
         name,
