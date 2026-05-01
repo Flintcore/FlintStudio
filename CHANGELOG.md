@@ -7,6 +7,13 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### Added (2026-05-01)
+
+- **System Dashboard** - `/dashboard` page with unified monitoring
+- **Dashboard Components** - SystemHealth, PerformanceMetrics, QuickActions
+- **Input Validation System** - Schema-based API validation with XSS protection
+- **Validation Schemas** - Project, workflow, API config validation rules
+
 ### Added (2026-04-27)
 
 - **Global Search** - Project/episode/character/location search with Cmd+K shortcut
