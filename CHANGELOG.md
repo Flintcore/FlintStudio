@@ -7,6 +7,13 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### Added (2026-05-10)
+
+- **Configuration Checker** - Comprehensive environment validation
+- **ConfigChecker UI** - Dashboard component for config status
+- **API Response Utilities** - Pagination, field filtering, caching, sorting
+- **Workflow Run Validation** - Schema-based validation for `/api/workflows/run`
+
 ### Added (2026-05-01)
 
 - **System Dashboard** - `/dashboard` page with unified monitoring
