@@ -3,9 +3,34 @@ import { NextResponse } from "next/server";
 import { createRun, startRunFirstStep } from "@/lib/workflow/service";
 import { WORKFLOW_ID } from "@/lib/workflow/types";
 import { isValidVisualStyleId } from "@/lib/workflow/visual-style";
+import { validateObject, isValidUUID } from "@/lib/validation";
 
 // 最大输入长度限制
 const MAX_NOVEL_TEXT_LENGTH = 100000; // 10万字符
+
+// 工作流运行请求验证 Schema
+const workflowRunSchema = {
+  projectId: {
+    required: true,
+    type: "string" as const,
+    custom: (value: unknown) => {
+      if (!isValidUUID(String(value))) {
+        return "项目 ID 必须是有效的 UUID";
+      }
+      return true;
+    },
+  },
+  novelText: {
+    required: true,
+    type: "string" as const,
+    minLength: 10,
+    maxLength: MAX_NOVEL_TEXT_LENGTH,
+  },
+  visualStyle: {
+    type: "string" as const,
+    maxLength: 50,
+  },
+};
 
 export async function POST(req: Request) {
   try {
@@ -18,48 +43,42 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const projectId = String(body.projectId ?? "").trim();
-    const novelText = String(body.novelText ?? body.input?.novelText ?? "").trim();
-    const visualStyle = String(body.visualStyle ?? body.input?.visualStyle ?? "").trim() || undefined;
 
-    if (!projectId || !novelText) {
+    // 验证输入
+    const validation = validateObject(body, workflowRunSchema);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "请提供 projectId 和 novelText" },
+        { error: "验证失败", details: validation.errors },
         { status: 400 }
       );
     }
 
-    // 验证输入长度
-    if (novelText.length > MAX_NOVEL_TEXT_LENGTH) {
-      return NextResponse.json(
-        { error: `小说文本长度超过限制 (${MAX_NOVEL_TEXT_LENGTH} 字符)` },
-        { status: 400 }
-      );
-    }
+    const data = validation.data as { projectId: string; novelText: string; visualStyle?: string };
+    const { projectId, novelText, visualStyle: inputVisualStyle } = data;
+    const visualStyle = inputVisualStyle?.trim() || undefined;
 
-    const project = await import("@/lib/db").then((m) =>
-      m.prisma.project.findFirst({
-        where: { id: projectId, userId: session.user.id },
-        include: { novelPromotion: true },
-      })
-    );
+    const { prisma } = await import("@/lib/db");
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId: session.user.id },
+      include: { novelPromotion: true },
+    });
     if (!project) {
       return NextResponse.json({ error: "项目不存在" }, { status: 404 });
     }
 
-    const inputVisualStyle =
+    const validVisualStyle =
       visualStyle && isValidVisualStyleId(visualStyle) ? visualStyle : undefined;
 
     const { run } = await createRun({
       userId: session.user.id,
       projectId,
       workflowId: WORKFLOW_ID.NOVEL_TO_VIDEO,
-      input: { novelText, ...(inputVisualStyle && { visualStyle: inputVisualStyle }) },
+      input: { novelText, ...(validVisualStyle && { visualStyle: validVisualStyle }) },
     });
 
     const task = await startRunFirstStep(run.id, {
       novelText,
-      ...(inputVisualStyle && { visualStyle: inputVisualStyle }),
+      ...(validVisualStyle && { visualStyle: validVisualStyle }),
     });
     if (!task) {
       return NextResponse.json(
@@ -68,14 +87,12 @@ export async function POST(req: Request) {
       );
     }
 
-    if (inputVisualStyle && project.novelPromotion) {
+    if (validVisualStyle && project.novelPromotion) {
       const novelPromotionId = project.novelPromotion.id;
-      await import("@/lib/db").then((m) =>
-        m.prisma.novelPromotionProject.update({
-          where: { id: novelPromotionId },
-          data: { defaultVisualStyle: inputVisualStyle },
-        })
-      );
+      await prisma.novelPromotionProject.update({
+        where: { id: novelPromotionId },
+        data: { defaultVisualStyle: validVisualStyle },
+      });
     }
 
     return NextResponse.json({
