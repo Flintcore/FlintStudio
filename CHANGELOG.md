@@ -7,6 +7,20 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### Added (2026-05-11) - Cost Transparency
+
+- **API Cost Estimator** - Predict workflow cost before running
+  - Token estimation for LLM calls (analysis, scripting, storyboarding, voice extract)
+  - Image generation count and cost (characters, locations, panels)
+  - TTS character count and duration estimation
+  - Video generation cost (panel-based)
+  - Total cost in USD and CNY
+  - Time estimation (min-max minutes)
+- **CostEstimator UI** - Real-time cost preview with debounced updates
+- **Pricing Data** - Major LLM/image/TTS/video model pricing
+- **Bug Fixes** - Replace console with logger, remove unused imports
+- **Code Quality** - ESLint warnings reduction
+
 ### Added (2026-05-10)
 
 - **Configuration Checker** - Comprehensive environment validation
