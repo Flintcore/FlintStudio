@@ -4,6 +4,7 @@ import { AppHeader } from "../components/app-header";
 import { SystemHealth } from "./system-health";
 import { PerformanceMetrics } from "./performance-metrics";
 import { QuickActions } from "./quick-actions";
+import { ConfigChecker } from "./config-checker";
 
 export default async function DashboardPage() {
   const session = await getCurrentSession();
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
             <SystemHealth />
             <PerformanceMetrics />
+            <ConfigChecker />
           </div>
           <div>
             <QuickActions />
