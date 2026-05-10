@@ -4,6 +4,7 @@ import { createRun, startRunFirstStep } from "@/lib/workflow/service";
 import { WORKFLOW_ID } from "@/lib/workflow/types";
 import { isValidVisualStyleId } from "@/lib/workflow/visual-style";
 import { validateObject, isValidUUID } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 // 最大输入长度限制
 const MAX_NOVEL_TEXT_LENGTH = 100000; // 10万字符
@@ -81,6 +82,10 @@ export async function POST(req: Request) {
       ...(validVisualStyle && { visualStyle: validVisualStyle }),
     });
     if (!task) {
+      logger.error(
+        { type: "workflow_start_failed", runId: run.id },
+        "Failed to start workflow first step"
+      );
       return NextResponse.json(
         { error: "启动工作流失败" },
         { status: 500 }
@@ -101,7 +106,10 @@ export async function POST(req: Request) {
       message: "工作流已启动，将自动执行：剧本分析 → 分场 → 分镜 → …",
     });
   } catch (e) {
-    console.error("[workflows/run]", e);
+    logger.error(
+      { type: "workflow_run_error", error: (e as Error).message },
+      "Workflow run error"
+    );
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "启动工作流失败" },
       { status: 500 }

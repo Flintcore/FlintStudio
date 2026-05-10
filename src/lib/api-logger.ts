@@ -70,7 +70,7 @@ export function logApiResponse(options: LogApiResponseOptions): void {
  */
 export function withApiLogging<T extends (...args: unknown[]) => Promise<Response>>(
   handler: T,
-  options?: { name?: string }
+  _options?: { name?: string }
 ): T {
   return (async (...args: unknown[]) => {
     const request = args[0] as Request;

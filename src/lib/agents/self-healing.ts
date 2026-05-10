@@ -3,7 +3,6 @@
  * 类似 OpenClaw 的自动诊断、修复、学习能力
  */
 
-import { prisma } from "@/lib/db";
 import { callAdaptiveLlm } from "@/lib/llm/adaptive-client";
 
 // 问题类型定义
