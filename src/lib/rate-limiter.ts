@@ -18,12 +18,6 @@ interface RateLimitResult {
   retryAfter?: number;
 }
 
-// 默认限流配置
-const DEFAULT_CONFIG: RateLimitConfig = {
-  windowMs: 60 * 1000,  // 1 分钟
-  maxRequests: 100,
-};
-
 // 不同端点的限流配置
 const ENDPOINT_CONFIGS: Record<string, RateLimitConfig> = {
   // 工作流启动 - 较严格

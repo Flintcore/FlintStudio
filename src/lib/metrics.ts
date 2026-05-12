@@ -43,7 +43,7 @@ function reportMetric(metric: Metric) {
   handlers.forEach((handler) => {
     try {
       handler(metric);
-    } catch (e) {
+    } catch {
       // 忽略处理器错误
     }
   });
@@ -95,7 +95,7 @@ export function observeWebVitals() {
 
       lcpObserver.observe({ entryTypes: ["largest-contentful-paint"] });
       observers.set("LCP", lcpObserver);
-    } catch (e) {
+    } catch {
       // 浏览器不支持
     }
 
@@ -121,7 +121,7 @@ export function observeWebVitals() {
 
       fidObserver.observe({ entryTypes: ["first-input"] });
       observers.set("FID", fidObserver);
-    } catch (e) {
+    } catch {
       // 浏览器不支持
     }
 
@@ -147,7 +147,7 @@ export function observeWebVitals() {
 
       clsObserver.observe({ entryTypes: ["layout-shift"] });
       observers.set("CLS", clsObserver);
-    } catch (e) {
+    } catch {
       // 浏览器不支持
     }
 
@@ -170,7 +170,7 @@ export function observeWebVitals() {
 
       fcpObserver.observe({ entryTypes: ["paint"] });
       observers.set("FCP", fcpObserver);
-    } catch (e) {
+    } catch {
       // 浏览器不支持
     }
   }

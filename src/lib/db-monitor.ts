@@ -27,7 +27,6 @@ export async function recordQueryMetric(
   isError: boolean
 ): Promise<void> {
   try {
-    const now = Date.now();
     const metrics = await getMetrics();
 
     metrics.queryCount++;
@@ -40,7 +39,7 @@ export async function recordQueryMetric(
       metrics.queryCount;
 
     await cacheSet(METRICS_KEY, metrics, METRICS_WINDOW);
-  } catch (e) {
+  } catch {
     // 静默处理监控错误
   }
 }
