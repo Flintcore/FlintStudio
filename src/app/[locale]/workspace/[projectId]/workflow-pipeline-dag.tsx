@@ -157,11 +157,17 @@ export function PipelineDagView({
   );
 
   const [nodesState, setNodes, onNodesChange] = useNodesState(nodes);
-  const [edgesState, setEdges, onEdgesChange] = useEdgesState(edges);
+  const [edgesState, , onEdgesChange] = useEdgesState(edges);
 
   useEffect(() => {
     setNodes(nodes);
   }, [nodes, setNodes]);
+
+  useEffect(() => {
+    if (!currentPhase) return;
+    const phaseExists = PIPELINE_PHASES.some((phase) => phase.key === currentPhase);
+    if (phaseExists) setSelectedPhaseKey(currentPhase);
+  }, [currentPhase]);
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_, node) => {
@@ -181,12 +187,48 @@ export function PipelineDagView({
   const selectedLabel = selectedPhaseKey
     ? PIPELINE_PHASES.find((p) => p.key === selectedPhaseKey)?.label ?? selectedPhaseKey
     : null;
+  const currentPhaseLabel = currentPhase
+    ? PIPELINE_PHASES.find((p) => p.key === currentPhase)?.label ?? currentPhase
+    : null;
+
+  const phaseMetrics = useMemo(() => {
+    const statusList = nodesState.map((node) => node.data.status);
+    const completed = statusList.filter((status) => status === "completed").length;
+    const running = statusList.filter((status) => status === "running").length;
+    const failed = statusList.filter((status) => status === "failed").length;
+    const total = statusList.length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { completed, running, failed, total, progress };
+  }, [nodesState]);
 
   return (
     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--background)]/60 overflow-hidden">
-      <p className="px-4 pt-3 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
-        流水线 DAG · 点击节点查看阶段详情（输入/输出/用时）
-      </p>
+      <div className="px-4 pt-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--muted)]">
+          <span>流水线 DAG · 点击节点查看阶段详情（输入/输出/用时）</span>
+          {currentPhaseLabel && (
+            <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 normal-case text-[var(--accent)]">
+              当前阶段：{currentPhaseLabel}
+            </span>
+          )}
+        </div>
+        <div className="mt-2">
+          <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--muted)]">
+            <span>进度 {phaseMetrics.completed}/{phaseMetrics.total}</span>
+            <span>{phaseMetrics.progress}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]/20">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-all"
+              style={{ width: `${phaseMetrics.progress}%` }}
+            />
+          </div>
+          <div className="mt-1 flex gap-3 text-[11px] text-[var(--muted)]">
+            <span>运行中 {phaseMetrics.running}</span>
+            <span>失败 {phaseMetrics.failed}</span>
+          </div>
+        </div>
+      </div>
       <div className="h-[200px] w-full">
         <ReactFlow
           nodes={nodesState}
