@@ -50,7 +50,7 @@ export function SystemHealth() {
       setHealth(data);
       setLastUpdate(new Date());
       setError(null);
-    } catch (e) {
+    } catch {
       setError("获取健康状态失败");
     } finally {
       setLoading(false);

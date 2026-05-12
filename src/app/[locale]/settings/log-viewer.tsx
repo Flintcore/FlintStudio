@@ -79,6 +79,7 @@ export function LogViewer() {
         clearInterval(intervalRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, level, type]);
 
   useEffect(() => {
