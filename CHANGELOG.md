@@ -7,6 +7,19 @@ This file documents notable changes to FlintStudio.
 
 ## [Unreleased]
 
+### Added (2026-05-12) - Real-time Progress 🔥
+
+- **Server-Sent Events (SSE) Streaming** - Real-time workflow progress push
+  - `/api/workflows/runs/[runId]/stream` endpoint with SSE
+  - Delta-based snapshot push (only on change)
+  - Heartbeat every 30s to prevent timeout
+  - `useRunStream` hook with auto-reconnect (3 attempts, exponential backoff)
+  - `RunProgress` component (compact + full layouts)
+  - Replaces polling with sub-2s latency push updates
+- **SSE Toolkit** - `src/lib/sse.ts` reusable SSE stream wrapper
+- **Bug Fixes** - Empty catch blocks, unused vars in db-monitor, rate-limiter
+- **Refactor** - eslint-disable comments where Hook deps intentionally omitted
+
 ### Added (2026-05-11) - Cost Transparency
 
 - **API Cost Estimator** - Predict workflow cost before running
